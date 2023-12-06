@@ -3,11 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from './services/prisma/prisma.module';
-import { CamerasModule } from './cameras/cameras.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { bullConfig } from './config/bull.config';
 import { BullModule } from '@nestjs/bull';
-import { ClipsModule } from './clips/clips.module';
 
 @Module({
   imports: [
@@ -18,8 +16,6 @@ import { ClipsModule } from './clips/clips.module';
       inject: [ConfigService],
     }),
     PrismaModule,
-    CamerasModule,
-    ClipsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
