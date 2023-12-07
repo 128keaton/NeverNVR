@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.451.0",
-    "@smithy/fetch-http-handler": "^2.3.1",
     "@aws-sdk/lib-storage": "^3.451.0",
     "@aws-sdk/s3-request-presigner": "^3.451.0",
+    "@nestjs/axios": "^3.0.1",
     "@nestjs/bull": "^10.0.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.1.1",
@@ -34,8 +34,11 @@
     "@nestjs/swagger": "^7.1.15",
     "@nestjs/websockets": "^10.2.9",
     "@prisma/client": "^5.4.2",
+    "@smithy/fetch-http-handler": "^2.3.1",
     "@vipstorage/nestjs-websocket": "^0.1.8",
+    "axios": "^1.6.2",
     "bull": "^4.11.4",
+    "class-validator": "^0.14.0",
     "prisma-pagination": "^0.2.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"

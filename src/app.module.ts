@@ -6,6 +6,7 @@ import { PrismaModule } from './services/prisma/prisma.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { bullConfig } from './config/bull.config';
 import { BullModule } from '@nestjs/bull';
+import { CamerasModule } from './cameras/cameras.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { BullModule } from '@nestjs/bull';
       inject: [ConfigService],
     }),
     PrismaModule,
+    CamerasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

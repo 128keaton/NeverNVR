@@ -19,7 +19,6 @@ export const bullConfig = (
   };
 
   if (!!redisURL && !isDev) {
-    console.log('Using production REDIS url', redisURL);
     return {
       ...options,
       redis: {
@@ -33,7 +32,6 @@ export const bullConfig = (
     };
   }
 
-  console.log('Using development REDIS url', redisURL);
   return {
     ...options,
     url: redisURL,

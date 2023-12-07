@@ -39,6 +39,15 @@ model Gateway {
   // something like ws://test.ccprxy.com or wss://awesome.ccprxy.com
   connectionURL String
 
+  // Token used to authenticate against the gateway's API
+  connectionToken String
+
+  // Is gateway currently online
+  status ConnectionStatus @default(UNKNOWN)
+
+  // When this gateway last connected
+  lastConnection DateTime?
+
   // Relationships
   cameras   Camera[]
   clips     Clip[]
@@ -59,7 +68,8 @@ model Camera {
   // Readable camera name
   name String
 
-  clips     Clip[]
+  clips Clip[]
+
   snapshots Snapshot[]
 
   // Camera timezone
@@ -80,6 +90,8 @@ model Camera {
   // Gateway this  camera belongs to
   gateway   Gateway? @relation(fields: [gatewayID], references: [id])
   gatewayID String?  @db.Uuid
+
+  synchronized Boolean @default(false)
 }
 
 model Snapshot {
