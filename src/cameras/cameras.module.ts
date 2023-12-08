@@ -6,7 +6,7 @@ import { CamerasQueue } from './cameras.queue';
 import { CamerasController } from './cameras.controller';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
-import { GatewaysModule } from "../gateways/gateways.module";
+import { GatewaysModule } from '../gateways/gateways.module';
 
 @Module({
   controllers: [CamerasController],

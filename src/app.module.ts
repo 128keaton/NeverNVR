@@ -8,6 +8,7 @@ import { bullConfig } from './config/bull.config';
 import { BullModule } from '@nestjs/bull';
 import { CamerasModule } from './cameras/cameras.module';
 import { GatewaysModule } from './gateways/gateways.module';
+import { SnapshotsModule } from './snapshots/snapshots.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { GatewaysModule } from './gateways/gateways.module';
     PrismaModule,
     CamerasModule,
     GatewaysModule,
+    SnapshotsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

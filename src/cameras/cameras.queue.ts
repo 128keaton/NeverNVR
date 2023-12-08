@@ -1,4 +1,4 @@
-import { Process, Processor } from "@nestjs/bull";
+import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { CameraEvent } from './types';
 import { CamerasGateway } from './cameras.gateway';

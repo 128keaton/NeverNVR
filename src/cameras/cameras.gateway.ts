@@ -1,50 +1,33 @@
 import {
   ConnectedSocket,
   MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { Camera, CameraEvent, CameraUpdate } from './types';
 import { Logger } from '@nestjs/common';
-import { GatewaySocket } from '../gateways/types/gateway.socket';
 import { GatewaysService } from '../gateways/gateways.service';
 import { CamerasService } from './cameras.service';
+import { CommonGateway } from '../common/common-gateway';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
   path: '/cameras.io/',
 })
-export class CamerasGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
-  private logger = new Logger(CamerasGateway.name);
-  private clients: GatewaySocket[] = [];
+export class CamerasGateway extends CommonGateway {
+  override logger = new Logger(CamerasGateway.name);
 
   constructor(
-    private gatewaysService: GatewaysService,
+    override gatewaysService: GatewaysService,
     private camerasService: CamerasService,
   ) {
+    super(gatewaysService);
     this.logger.verbose('Cameras gateway active');
   }
 
   handleCameraEvent(event: CameraEvent) {
-    const gatewayClient = this.clients.find(
-      (client) => client.gatewayID === event.camera.gatewayID,
-    );
-
-    this.logger.verbose(`handleCameraEvent: ${event.eventType}`);
-
-    if (!gatewayClient)
-      throw new Error(
-        `Could not find a client for gateway ID ${event.camera.gatewayID}`,
-      );
-    else
-      this.logger.verbose(
-        `Sending message to client with ID ${gatewayClient.id} and gatewayID of ${gatewayClient.gatewayID}`,
-      );
+    const client = this.getGatewayClient(event.camera.gatewayID);
 
     const camera = {
       ...event.camera,
@@ -54,7 +37,7 @@ export class CamerasGateway
 
     delete camera.gatewayID;
 
-    const didEmit = gatewayClient.emit(event.eventType, {
+    const didEmit = client.emit(event.eventType, {
       id: event.camera.id,
       camera,
     });
@@ -62,23 +45,6 @@ export class CamerasGateway
     if (!didEmit) this.logger.warn('Could not emit');
 
     return didEmit;
-  }
-
-  handleConnection(client: Socket): any {
-    this.logger.debug(`New client: ${client.id}`);
-    this.clients.push(client);
-    client.emit('request', { type: 'identify' });
-  }
-
-  handleDisconnect(): any {
-    const disconnectedClient = this.clients.find((client) => client.id);
-
-    if (!!disconnectedClient) {
-      this.logger.verbose(
-        `Client with gatewayID ${disconnectedClient.gatewayID} has disconnected`,
-      );
-      this.clients.filter((c) => c.id !== disconnectedClient.id);
-    }
   }
 
   @SubscribeMessage('response')
@@ -89,7 +55,7 @@ export class CamerasGateway
     switch (response.type) {
       case 'identify':
         this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID} and totalCameras ${response.data.totalCameras}`,
+          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
         );
         this.associateGatewayID(client.id, response.data.gatewayID).then();
         break;
@@ -128,21 +94,5 @@ export class CamerasGateway
       },
       false,
     );
-  }
-
-  private async associateGatewayID(clientID: string, gatewayID: string) {
-    const client = this.clients.find((client) => client.id === clientID);
-
-    if (!client) {
-      this.logger.error(`Could not find client with ID ${clientID}`);
-      return;
-    }
-
-    const gateway = await this.gatewaysService.get(gatewayID);
-
-    if (!!gateway)
-      await this.gatewaysService.updateStatus(gatewayID, 'CONNECTED');
-
-    client.gatewayID = gatewayID;
   }
 }

@@ -16,6 +16,11 @@ Please set up your `.env` file like shown below
 ```dotenv
 DATABASE_URL="postgresql://username:password@localhost:5432/never?schema=public"
 REDIS_URL=redis://localhost:6379
+AWS_ACCESS_KEY_ID=AKIAasdasdasd
+AWS_SECRET_ACCESS_KEY=0asdasdasdasd
+AWS_REGION=us-east-2
+PORT=3123
+NODE_ENV=development
 ```
 
 ### Commands
