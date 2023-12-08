@@ -6,6 +6,7 @@ import { CamerasQueue } from './cameras.queue';
 import { CamerasController } from './cameras.controller';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
+import { GatewaysModule } from "../gateways/gateways.module";
 
 @Module({
   controllers: [CamerasController],
@@ -16,7 +17,8 @@ import { BullModule } from '@nestjs/bull';
     BullModule.registerQueue({
       name: 'cameras',
     }),
+    GatewaysModule,
   ],
-  exports: [CamerasService],
+  exports: [CamerasService, CamerasGateway],
 })
 export class CamerasModule {}

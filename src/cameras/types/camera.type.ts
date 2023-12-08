@@ -8,6 +8,11 @@ export class Camera {
   id: string;
 
   @ApiProperty({
+    example: 'asd102390sod',
+  })
+  name: string;
+
+  @ApiProperty({
     description: 'Everything after the IP address',
     example: '/ISAPI/Streaming/Channels/101/picture',
   })

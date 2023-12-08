@@ -68,6 +68,7 @@ export class CamerasService {
 
     const camera = await this.prismaService.camera.create({
       data: {
+        id: create.id,
         name: create.name,
         stream: create.stream,
         record: create.record,

@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { bullConfig } from './config/bull.config';
 import { BullModule } from '@nestjs/bull';
 import { CamerasModule } from './cameras/cameras.module';
+import { GatewaysModule } from './gateways/gateways.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CamerasModule } from './cameras/cameras.module';
     }),
     PrismaModule,
     CamerasModule,
+    GatewaysModule,
   ],
   controllers: [AppController],
   providers: [AppService],

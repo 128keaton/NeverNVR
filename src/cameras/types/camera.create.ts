@@ -10,6 +10,12 @@ export class CameraCreate {
   name: string;
 
   @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  id?: string;
+
+  @ApiProperty({
     required: true,
     example: '21kaskjdhjkha',
   })

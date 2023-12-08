@@ -36,7 +36,7 @@ model Gateway {
   // Gateway timezone
   timezone String @default("UTC")
 
-  // something like ws://test.ccprxy.com or wss://awesome.ccprxy.com
+  // something like http://test.ccprxy.com or https://awesome.ccprxy.com
   connectionURL String
 
   // Token used to authenticate against the gateway's API
