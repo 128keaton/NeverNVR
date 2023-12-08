@@ -59,7 +59,7 @@ export class CamerasGateway
   handleConnection(client: Socket, ...args: any[]): any {
     this.logger.debug(`New client: ${client.id}`);
     this.clients.push(client);
-    client.emit('request', { type: 'gatewayID' });
+    client.emit('request', { type: 'identify' });
   }
 
   handleDisconnect(client: Socket): any {
@@ -72,11 +72,11 @@ export class CamerasGateway
     @ConnectedSocket() client: Socket,
   ) {
     switch (response.type) {
-      case 'gatewayID':
+      case 'identify':
         this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data}`,
+          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID} and totalCameras ${response.data.totalCameras}`,
         );
-        this.associateGatewayID(client.id, response.data).then();
+        this.associateGatewayID(client.id, response.data.gatewayID).then();
         break;
       default:
         this.logger.verbose(
@@ -91,6 +91,16 @@ export class CamerasGateway
   @SubscribeMessage('created')
   handleCreated(@MessageBody() request: { camera: Camera; id: string }) {
     return this.camerasService.create(request.camera, false);
+  }
+
+  @SubscribeMessage('deleted')
+  handleDeleted(@MessageBody() request: { camera: Camera; id: string }) {
+    return this.camerasService.delete(request.id, false);
+  }
+
+  @SubscribeMessage('updated')
+  handleUpdated(@MessageBody() request: { camera: Camera; id: string }) {
+    return this.camerasService.update(request.id, request.camera, false);
   }
 
   private async associateGatewayID(clientID: string, gatewayID: string) {
