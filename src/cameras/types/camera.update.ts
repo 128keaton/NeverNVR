@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { ConnectionStatus } from '@prisma/client';
 
 export class CameraUpdate {
   @ApiProperty({
@@ -152,8 +153,25 @@ export class CameraUpdate {
   port?: number;
 
   @ApiProperty({
+    example: ConnectionStatus.CONNECTED,
+    enum: [
+      ConnectionStatus.CONNECTED,
+      ConnectionStatus.DISCONNECTED,
+      ConnectionStatus.UNKNOWN,
+    ],
+  })
+  @IsOptional()
+  status: ConnectionStatus;
+
+  @ApiProperty({
     required: false,
   })
   @IsOptional()
-  online?: boolean;
+  lastConnection?: Date;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  synchronized?: boolean;
 }

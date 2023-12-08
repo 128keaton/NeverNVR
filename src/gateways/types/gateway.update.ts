@@ -29,4 +29,11 @@ export class GatewayUpdate {
   })
   @IsOptional()
   connectionToken?: string;
+
+  @ApiProperty({
+    required: false,
+    example: 'pod1-nvr',
+  })
+  @IsOptional()
+  s3Bucket?: string;
 }

@@ -29,4 +29,11 @@ export class GatewayCreate {
   })
   @IsString()
   connectionToken: string;
+
+  @ApiProperty({
+    required: true,
+    example: 'pod1-nvr',
+  })
+  @IsString()
+  s3Bucket: string;
 }

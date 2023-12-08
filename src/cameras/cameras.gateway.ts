@@ -7,7 +7,7 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
-import { Camera, CameraEvent } from './types';
+import { Camera, CameraEvent, CameraUpdate } from './types';
 import { Logger } from '@nestjs/common';
 import { GatewaySocket } from '../gateways/types/gateway.socket';
 import { GatewaysService } from '../gateways/gateways.service';
@@ -41,6 +41,10 @@ export class CamerasGateway
       throw new Error(
         `Could not find a client for gateway ID ${event.camera.gatewayID}`,
       );
+    else
+      this.logger.verbose(
+        `Sending message to client with ID ${gatewayClient.id} and gatewayID of ${gatewayClient.gatewayID}`,
+      );
 
     const camera = {
       ...event.camera,
@@ -50,20 +54,31 @@ export class CamerasGateway
 
     delete camera.gatewayID;
 
-    return gatewayClient.emit(event.eventType, {
+    const didEmit = gatewayClient.emit(event.eventType, {
       id: event.camera.id,
       camera,
     });
+
+    if (!didEmit) this.logger.warn('Could not emit');
+
+    return didEmit;
   }
 
-  handleConnection(client: Socket, ...args: any[]): any {
+  handleConnection(client: Socket): any {
     this.logger.debug(`New client: ${client.id}`);
     this.clients.push(client);
     client.emit('request', { type: 'identify' });
   }
 
-  handleDisconnect(client: Socket): any {
-    this.clients.filter((c) => c.id !== client.id);
+  handleDisconnect(): any {
+    const disconnectedClient = this.clients.find((client) => client.id);
+
+    if (!!disconnectedClient) {
+      this.logger.verbose(
+        `Client with gatewayID ${disconnectedClient.gatewayID} has disconnected`,
+      );
+      this.clients.filter((c) => c.id !== disconnectedClient.id);
+    }
   }
 
   @SubscribeMessage('response')
@@ -99,8 +114,20 @@ export class CamerasGateway
   }
 
   @SubscribeMessage('updated')
-  handleUpdated(@MessageBody() request: { camera: Camera; id: string }) {
-    return this.camerasService.update(request.id, request.camera, false);
+  handleUpdated(@MessageBody() request: { camera: CameraUpdate; id: string }) {
+    return this.camerasService.update(
+      request.id,
+      {
+        stream: request.camera.stream,
+        record: request.camera.record,
+        name: request.camera.name,
+        status: request.camera.status,
+        timezone: request.camera.timezone,
+        synchronized: request.camera.synchronized,
+        lastConnection: request.camera.lastConnection,
+      },
+      false,
+    );
   }
 
   private async associateGatewayID(clientID: string, gatewayID: string) {

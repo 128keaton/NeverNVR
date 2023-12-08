@@ -28,6 +28,11 @@ export class Gateway {
   connectionToken: string;
 
   @ApiProperty({
+    example: 'pod1-nvr',
+  })
+  s3Bucket: string;
+
+  @ApiProperty({
     example: ConnectionStatus.CONNECTED,
     enum: [
       ConnectionStatus.CONNECTED,

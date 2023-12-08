@@ -35,6 +35,12 @@ export class CamerasService {
   async getDetails(id: string) {
     const camera = await this.get(id);
 
+    if (!camera)
+      throw new HttpException(
+        `Could not find camera with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
     const gateway = await this.prismaService.gateway.findFirst({
       where: {
         id: camera.gatewayID,
@@ -123,7 +129,15 @@ export class CamerasService {
       where: {
         id,
       },
-      data: update,
+      data: {
+        stream: update.stream,
+        record: update.record,
+        status: !!update.ipAddress ? 'UNKNOWN' : update.status,
+        name: update.name,
+        deleteClipAfter: update.deleteClipAfter,
+        deleteSnapshotAfter: update.deleteSnapshotAfter,
+        synchronized: !emit,
+      },
     });
 
     if (!camera) return camera;

@@ -52,6 +52,9 @@ model Gateway {
   cameras   Camera[]
   clips     Clip[]
   snapshots Snapshot[]
+
+  // S3 bucket where clips/snapshots are stored
+  s3Bucket String @unique
 }
 
 // Very similar to the gateway camera but just at a higher level
