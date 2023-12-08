@@ -9,6 +9,7 @@ import { BullModule } from '@nestjs/bull';
 import { CamerasModule } from './cameras/cameras.module';
 import { GatewaysModule } from './gateways/gateways.module';
 import { SnapshotsModule } from './snapshots/snapshots.module';
+import { ClipsModule } from './clips/clips.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SnapshotsModule } from './snapshots/snapshots.module';
     CamerasModule,
     GatewaysModule,
     SnapshotsModule,
+    ClipsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
