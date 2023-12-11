@@ -22,7 +22,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
       inject: [ConfigService],
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'client'),
+      rootPath: join(__dirname, '..', 'client', 'dist', 'never_ui'),
     }),
     PrismaModule,
     CamerasModule,
