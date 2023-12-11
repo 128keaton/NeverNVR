@@ -1,9 +1,4 @@
-import {
-  ConnectedSocket,
-  MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-} from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { GatewaySocket } from './gateway.socket';
 import { GatewaysService } from '../gateways/gateways.service';
@@ -34,7 +29,6 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-
   async associateGatewayID(clientID: string, gatewayID: string) {
     const client = this.clients.find((client) => client.id === clientID);
 
@@ -64,6 +58,12 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
     return gatewayClient;
+  }
+
+  getWebClients() {
+    return  this.clients.filter(
+      (client) => client.gatewayID === undefined,
+    );
   }
 
   getGatewayIDFromClientID(clientID: string) {

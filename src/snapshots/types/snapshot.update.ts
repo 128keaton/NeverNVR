@@ -45,9 +45,16 @@ export class SnapshotUpdate {
   timestamp?: Date;
 
   @ApiProperty({
-    example: 25,
+    example: true,
     required: false,
   })
   @IsOptional()
-  deleteAfter?: number;
+  availableLocally?: boolean;
+
+  @ApiProperty({
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  availableCloud?: boolean;
 }

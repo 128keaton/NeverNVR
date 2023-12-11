@@ -41,7 +41,6 @@ export class SnapshotsService {
         timezone: create.timezone || camera.timezone,
         fileName: create.fileName,
         fileSize: create.fileSize,
-        deleteAfter: create.deleteAfter,
         width: create.width,
         height: create.height,
         timestamp: create.timestamp,
@@ -125,7 +124,8 @@ export class SnapshotsService {
         width: true,
         height: true,
         timestamp: true,
-        deleteAfter: true,
+        availableLocally: true,
+        availableCloud: true,
         cameraID: true,
         camera: {
           select: {
@@ -140,13 +140,21 @@ export class SnapshotsService {
     };
   }
 
-  update(id: string, data: any) {
-    return this.prismaService.snapshot.update({
+  async update(id: string, data: any, emitLocal = true) {
+    const snapshot = await this.prismaService.snapshot.update({
       where: {
         id,
       },
       data,
     });
+
+    if (emitLocal)
+      await this.snapshotsQueue.add('outgoing', {
+        eventType: 'updated',
+        snapshot,
+      });
+
+    return snapshot;
   }
 
   getSnapshot(id: string) {

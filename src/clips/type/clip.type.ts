@@ -32,7 +32,10 @@ export class Clip {
   processing: boolean;
 
   @ApiProperty()
-  uploaded: boolean;
+  availableLocally: boolean;
+
+  @ApiProperty()
+  availableCloud: boolean;
 
   @ApiProperty()
   gatewayID: string;

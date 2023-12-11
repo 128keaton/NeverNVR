@@ -42,6 +42,18 @@ export class SnapshotsGateway extends CommonGateway {
       cameraName: event.cameraName,
     });
 
+    // Get all UI clients (i.e. non gateway clients)
+    const webClients = this.getWebClients();
+
+    // Send the UI clients the same update
+    webClients.forEach((client) => {
+      client.emit(event.eventType, {
+        id: event.snapshot.id,
+        snapshot,
+        cameraName: event.cameraName,
+      });
+    });
+
     if (!didEmit) this.logger.warn('Could not emit');
 
     return didEmit;
@@ -88,5 +100,27 @@ export class SnapshotsGateway extends CommonGateway {
       },
       false,
     );
+  }
+
+  @SubscribeMessage('deleted')
+  handleDeleted(
+    @MessageBody()
+    request: {
+      deleted: Snapshot;
+      id: string;
+    },
+  ) {
+    return this.snapshotsService.delete(request.id, false);
+  }
+
+  @SubscribeMessage('updated')
+  handleUpdated(
+    @MessageBody()
+    request: {
+      snapshot: Snapshot;
+      id: string;
+    },
+  ) {
+    return this.snapshotsService.update(request.id, request.snapshot, false);
   }
 }

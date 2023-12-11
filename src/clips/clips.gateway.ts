@@ -41,6 +41,18 @@ export class ClipsGateway extends CommonGateway {
       cameraName: event.cameraName,
     });
 
+    // Get all UI clients (i.e. non gateway clients)
+    const webClients = this.getWebClients();
+
+    // Send the UI clients the same update
+    webClients.forEach((client) => {
+      client.emit(event.eventType, {
+        id: event.clip.id,
+        clip,
+        cameraName: event.cameraName,
+      });
+    });
+
     if (!didEmit) this.logger.warn('Could not emit');
 
     return didEmit;

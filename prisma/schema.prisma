@@ -119,9 +119,6 @@ model Snapshot {
   // Timestamp of when the snapshot was taken
   timestamp DateTime @default(now())
 
-  // Represents the amount of hours transpire before a snapshot is deleted
-  deleteAfter Int @default(72)
-
   // Camera relationship
   camera   Camera? @relation(fields: [cameraID], references: [id], onDelete: Cascade)
   cameraID String? @db.Uuid
@@ -129,6 +126,12 @@ model Snapshot {
   // Gateway relationship
   gateway   Gateway? @relation(fields: [gatewayID], references: [id])
   gatewayID String?  @db.Uuid
+
+  // Has clip been uploaded to S3
+  availableCloud Boolean @default(true)
+
+  // Is the clip available on local storage
+  availableLocally Boolean @default(true)
 }
 
 model Clip {
@@ -162,9 +165,6 @@ model Clip {
   // Represents clip end
   end DateTime?
 
-  // Represents the amount of hours transpire before a clip is deleted
-  deleteAfter Int @default(72)
-
   // Camera relationship
   camera   Camera? @relation(fields: [cameraID], references: [id], onDelete: Cascade)
   cameraID String? @db.Uuid
@@ -172,4 +172,10 @@ model Clip {
   // Gateway relationship
   gateway   Gateway? @relation(fields: [gatewayID], references: [id])
   gatewayID String?  @db.Uuid
+
+  // Has clip been uploaded to S3
+  availableCloud Boolean @default(true)
+
+  // Is the clip available on local storage
+  availableLocally Boolean @default(true)
 }

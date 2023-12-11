@@ -1,11 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { S3Service } from '../services/s3/s3.service';
 import { Clip } from './type';
-import { ClipFormat } from '@prisma/client';
+import { ClipFormat, Prisma } from '@prisma/client';
+import { createPaginator } from 'prisma-pagination';
+import { AppHelpers } from '../app.helpers';
+import { HttpStatusCode } from 'axios';
 
 @Injectable()
 export class ClipsService {
@@ -17,6 +20,64 @@ export class ClipsService {
     private configService: ConfigService,
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
+
+  getClip(id: string) {
+    return this.prismaService.clip.findFirst({
+      where: {
+        id,
+      },
+      include: {
+        gateway: true,
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
+  async delete(id: string, emitLocal = true) {
+    const deleted = await this.prismaService.clip.delete({
+      where: {
+        id,
+      },
+      include: {
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!deleted) return deleted;
+
+    // Delete from S3
+    const fileKey = AppHelpers.getFileKey(
+      deleted.fileName,
+      deleted.camera.name,
+      '.mp4',
+    );
+
+    if (deleted.availableCloud)
+      await this.s3Service.deleteFile(fileKey, deleted.gateway.s3Bucket);
+
+    if (emitLocal)
+      await this.clipQueue.add('outgoing', {
+        eventType: 'deleted',
+        clip: deleted,
+        cameraName: deleted.camera.name,
+      });
+
+    return deleted;
+  }
 
   async create(create: Clip, cameraName: string, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
@@ -43,7 +104,8 @@ export class ClipsService {
           width: create.width,
           height: create.height,
           timezone: camera.timezone,
-          deleteAfter: camera.deleteClipAfter,
+          availableLocally: create.availableLocally,
+          availableCloud: create.availableCloud,
           camera: {
             connect: {
               id: camera.id,
@@ -81,7 +143,6 @@ export class ClipsService {
   update(
     id: string,
     clip: {
-      deleteAfter?: number;
       fileName?: string;
       fileSize?: number;
       width?: number;
@@ -91,24 +152,176 @@ export class ClipsService {
       start?: Date;
       end?: Date;
       processing?: boolean;
-      uploaded?: boolean;
+      availableLocally?: boolean;
+      availableCloud?: boolean;
     },
   ) {
-    return this.prismaService.clip.update({
+    return this.prismaService.clip
+      .update({
+        where: {
+          id,
+        },
+        data: {
+          duration: clip.duration,
+          fileName: clip.fileName,
+          fileSize: clip.fileSize,
+          width: clip.width,
+          height: clip.height,
+          format: clip.format,
+          start: clip.start,
+          end: clip.end,
+          availableLocally: clip.availableLocally,
+          availableCloud: clip.availableCloud,
+        },
+      })
+      .catch((err) => {
+        this.logger.error(JSON.stringify(err));
+      });
+  }
+
+  getClips(pageSize?: number, pageNumber?: number, search?: string) {
+    const paginate = createPaginator({ perPage: pageSize || 40 });
+
+    let where: any = {
+      processing: false,
+    };
+
+    if (!!search) {
+      where = {
+        processing: false,
+        camera: {
+          name: {
+            contains: search,
+          },
+        },
+      };
+    }
+
+    return paginate<Clip, Prisma.ClipFindManyArgs>(
+      this.prismaService.clip,
+      {
+        where,
+        orderBy: {
+          end: 'desc',
+        },
+        include: {
+          camera: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
+        },
+      },
+      {
+        page: pageNumber,
+        perPage: pageSize,
+      },
+    );
+  }
+
+  async getClipsByCameraID(cameraID: string) {
+    const clips = await this.prismaService.clip.findMany({
+      where: {
+        cameraID,
+      },
+      orderBy: {
+        end: 'desc',
+      },
+      select: {
+        fileName: true,
+        id: true,
+        timezone: true,
+        fileSize: true,
+        width: true,
+        height: true,
+        duration: true,
+        format: true,
+        start: true,
+        end: true,
+        cameraID: true,
+        availableCloud: true,
+        availableLocally: true,
+      },
+    });
+    return {
+      total: clips.length,
+      data: clips,
+    };
+  }
+
+  async getVideoClip(id: string) {
+    const clip = await this.prismaService.clip.findFirst({
       where: {
         id,
       },
-      data: {
-        duration: clip.duration,
-        deleteAfter: clip.deleteAfter,
-        fileName: clip.fileName,
-        fileSize: clip.fileSize,
-        width: clip.width,
-        height: clip.height,
-        format: clip.format,
-        start: clip.start,
-        end: clip.end,
+      select: {
+        fileName: true,
+        availableLocally: true,
+        availableCloud: true,
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
       },
     });
+
+    // Download from S3
+    if (clip.availableCloud) {
+      const fileKey = AppHelpers.getFileKey(
+        clip.fileName,
+        clip.camera.name,
+        '.mp4',
+      );
+
+      return this.s3Service.getFile(fileKey, clip.gateway.s3Bucket);
+    }
+
+    throw new HttpException(
+      'Clip is not in the cloud',
+      HttpStatusCode.NotFound,
+    );
+  }
+
+  async getClipDownloadURL(id: string) {
+    const clip = await this.prismaService.clip.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        fileName: true,
+        availableCloud: true,
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!clip)
+      throw new HttpException('Could not find clip', HttpStatusCode.NotFound);
+
+    if (!clip.availableCloud)
+      throw new HttpException('Clip not uploaded', HttpStatusCode.NotFound);
+
+    const fileKey = AppHelpers.getFileKey(
+      clip.fileName,
+      clip.camera.name,
+      '.mp4',
+    );
+
+    return this.s3Service.getFileURL(fileKey, clip.gateway.s3Bucket);
   }
 }

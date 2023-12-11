@@ -67,9 +67,12 @@ export class SnapshotCreate {
   timestamp: Date;
 
   @ApiProperty({
-    example: 25,
-    required: false,
+    example: true,
   })
-  @IsOptional()
-  deleteAfter?: number;
+  availableLocally?: boolean;
+
+  @ApiProperty({
+    example: true,
+  })
+  availableCloud?: boolean;
 }
