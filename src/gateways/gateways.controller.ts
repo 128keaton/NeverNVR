@@ -12,7 +12,9 @@ import { GatewaysService } from './gateways.service';
 import {
   Gateway,
   GatewayCreate,
+  GatewayDiskSpace,
   GatewaysResponse,
+  GatewayStats,
   GatewayUpdate,
 } from './types';
 
@@ -42,6 +44,26 @@ export class GatewaysController {
   @ApiOperation({ summary: 'Get a gateway' })
   get(@Param('id') id: string) {
     return this.gatewaysService.get(id);
+  }
+
+  @Get(':id/stats')
+  @ApiResponse({
+    status: 200,
+    type: GatewayStats,
+  })
+  @ApiOperation({ summary: 'Get a gateways stats' })
+  getStats(@Param('id') id: string) {
+    return this.gatewaysService.getStats(id);
+  }
+
+  @Get(':id/diskSpace')
+  @ApiResponse({
+    status: 200,
+    type: GatewayDiskSpace,
+  })
+  @ApiOperation({ summary: 'Get a gateways disk space info' })
+  getDiskSpace(@Param('id') id: string) {
+    return this.gatewaysService.getDiskSpace(id);
   }
 
   @Get()

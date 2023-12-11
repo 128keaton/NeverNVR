@@ -8,6 +8,8 @@ async function bootstrap() {
   const nodeEnvironment = process.env.NODE_ENV || 'production';
   const app = await NestFactory.create(AppModule, { cors: true });
 
+  app.setGlobalPrefix('api', { exclude: [''] });
+
   if (nodeEnvironment === 'development') {
     const config = new DocumentBuilder()
       .setTitle('NeverNVR')

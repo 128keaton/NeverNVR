@@ -1,11 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import { GatewayCreate, GatewayUpdate } from './types';
+import {
+  GatewayCreate,
+  GatewayDiskSpace,
+  GatewayStats,
+  GatewayUpdate,
+} from './types';
 import { ConnectionStatus } from '@prisma/client';
+import { lastValueFrom, map } from 'rxjs';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class GatewaysService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private httpService: HttpService,
+  ) {}
 
   create(data: GatewayCreate) {
     return this.prismaService.gateway.create({
@@ -19,6 +29,46 @@ export class GatewaysService {
         id,
       },
     });
+  }
+
+  async getStats(id: string) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Could not find gateway with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    return lastValueFrom(
+      this.httpService
+        .get<GatewayStats>(`${gateway.connectionURL}/api/stats`)
+        .pipe(map((response) => response.data)),
+    );
+  }
+
+  async getDiskSpace(id: string) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Could not find gateway with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    return lastValueFrom(
+      this.httpService
+        .get<GatewayDiskSpace>(`${gateway.connectionURL}/api/system/space`)
+        .pipe(map((response) => response.data)),
+    );
   }
 
   async getMany() {

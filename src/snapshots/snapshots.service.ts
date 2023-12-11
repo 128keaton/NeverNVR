@@ -93,6 +93,12 @@ export class SnapshotsService {
           timestamp: 'desc',
         },
         include: {
+          gateway: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
           camera: {
             select: {
               name: true,
@@ -163,8 +169,15 @@ export class SnapshotsService {
         id,
       },
       include: {
+        gateway: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         camera: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -211,29 +224,26 @@ export class SnapshotsService {
   }
 
   async getSnapshotDownloadURL(id: string) {
-    const snapshot = await this.prismaService.snapshot
-      .findFirst({
-        where: {
-          id,
-        },
-        select: {
-          fileName: true,
-          gateway: {
-            select: {
-              s3Bucket: true,
-            },
-          },
-          camera: {
-            select: {
-              name: true,
-            },
+    const snapshot = await this.prismaService.snapshot.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        fileName: true,
+        availableCloud: true,
+        availableLocally: true,
+        gateway: {
+          select: {
+            s3Bucket: true,
           },
         },
-      })
-      .catch((err) => {
-        this.logger.error(err);
-        return null;
-      });
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
 
     if (!snapshot)
       throw new HttpException(
@@ -241,7 +251,7 @@ export class SnapshotsService {
         HttpStatusCode.NotFound,
       );
 
-    if (!snapshot.uploaded)
+    if (!snapshot.availableCloud)
       throw new HttpException('Snapshot not uploaded', HttpStatusCode.NotFound);
 
     const fileKey = AppHelpers.getFileKey(

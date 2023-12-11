@@ -182,13 +182,10 @@ export class ClipsService {
   getClips(pageSize?: number, pageNumber?: number, search?: string) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
-    let where: any = {
-      processing: false,
-    };
+    let where: any = {};
 
     if (!!search) {
       where = {
-        processing: false,
         camera: {
           name: {
             contains: search,
@@ -205,6 +202,12 @@ export class ClipsService {
           end: 'desc',
         },
         include: {
+          gateway: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
           camera: {
             select: {
               name: true,
@@ -315,6 +318,12 @@ export class ClipsService {
 
     if (!clip.availableCloud)
       throw new HttpException('Clip not uploaded', HttpStatusCode.NotFound);
+
+    if (!clip.gateway)
+      throw new HttpException(
+        'Clip not associated with gateway',
+        HttpStatusCode.NotFound,
+      );
 
     const fileKey = AppHelpers.getFileKey(
       clip.fileName,

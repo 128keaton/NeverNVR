@@ -61,7 +61,15 @@ export class CamerasService {
   }
 
   async getMany() {
-    const cameras = await this.prismaService.camera.findMany();
+    const cameras = await this.prismaService.camera.findMany({
+      include: {
+        gateway: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
 
     return {
       total: cameras.length,
