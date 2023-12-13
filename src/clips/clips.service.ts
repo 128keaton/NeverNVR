@@ -1,23 +1,27 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { S3Service } from '../services/s3/s3.service';
-import { Clip } from './type';
+import { Clip, ClipEvent } from './type';
 import { ClipFormat, Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { HttpStatusCode } from 'axios';
+import { Subject } from 'rxjs';
 
 @Injectable()
 export class ClipsService {
+  private _clipEvents = new Subject<ClipEvent>();
   private logger = new Logger(ClipsService.name);
+
+  get clipEvents() {
+    return this._clipEvents.asObservable();
+  }
 
   constructor(
     private s3Service: S3Service,
     private prismaService: PrismaService,
-    private configService: ConfigService,
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
 
@@ -76,6 +80,12 @@ export class ClipsService {
         cameraName: deleted.camera.name,
       });
 
+    this._clipEvents.next({
+      eventType: 'deleted',
+      clip: deleted,
+      cameraName: deleted.camera.name,
+    });
+
     return deleted;
   }
 
@@ -118,6 +128,11 @@ export class ClipsService {
           },
         },
         include: {
+          gateway: {
+            select: {
+              name: true,
+            },
+          },
           camera: {
             select: {
               name: true,
@@ -137,10 +152,16 @@ export class ClipsService {
         cameraName,
       });
 
+    this._clipEvents.next({
+      eventType: 'created',
+      clip,
+      cameraName: clip.camera.name,
+    });
+
     return clip;
   }
 
-  update(
+  async update(
     id: string,
     clip: {
       fileName?: string;
@@ -156,27 +177,38 @@ export class ClipsService {
       availableCloud?: boolean;
     },
   ) {
-    return this.prismaService.clip
-      .update({
-        where: {
-          id,
+    const updatedClip = await this.prismaService.clip.update({
+      where: {
+        id,
+      },
+      data: {
+        duration: clip.duration,
+        fileName: clip.fileName,
+        fileSize: clip.fileSize,
+        width: clip.width,
+        height: clip.height,
+        format: clip.format,
+        start: clip.start,
+        end: clip.end,
+        availableLocally: clip.availableLocally,
+        availableCloud: clip.availableCloud,
+      },
+      include: {
+        gateway: true,
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
         },
-        data: {
-          duration: clip.duration,
-          fileName: clip.fileName,
-          fileSize: clip.fileSize,
-          width: clip.width,
-          height: clip.height,
-          format: clip.format,
-          start: clip.start,
-          end: clip.end,
-          availableLocally: clip.availableLocally,
-          availableCloud: clip.availableCloud,
-        },
-      })
-      .catch((err) => {
-        this.logger.error(JSON.stringify(err));
-      });
+      },
+    });
+
+    this._clipEvents.next({
+      eventType: 'updated',
+      clip: updatedClip,
+      cameraName: updatedClip.camera.name,
+    });
   }
 
   getClips(pageSize?: number, pageNumber?: number, search?: string) {

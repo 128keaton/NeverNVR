@@ -61,9 +61,7 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   getWebClients() {
-    return  this.clients.filter(
-      (client) => client.gatewayID === undefined,
-    );
+    return this.clients.filter((client) => client.gatewayID === undefined);
   }
 
   getGatewayIDFromClientID(clientID: string) {

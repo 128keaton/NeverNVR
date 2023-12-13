@@ -8,10 +8,16 @@ import { createPaginator } from 'prisma-pagination';
 import { Prisma, Snapshot } from '@prisma/client';
 import { S3Service } from '../services/s3/s3.service';
 import { AppHelpers } from '../app.helpers';
+import { Subject } from 'rxjs';
 
 @Injectable()
 export class SnapshotsService {
+  private _snapshotEvents = new Subject<SnapshotEvent>();
   private logger = new Logger(SnapshotsService.name);
+
+  get snapshotEvents() {
+    return this._snapshotEvents.asObservable();
+  }
 
   constructor(
     private prismaService: PrismaService,
@@ -55,6 +61,18 @@ export class SnapshotsService {
           },
         },
       },
+      include: {
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+        gateway: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (!snapshot) return snapshot;
@@ -66,6 +84,13 @@ export class SnapshotsService {
         create,
         cameraName: camera.name,
       });
+
+    this._snapshotEvents.next({
+      create,
+      snapshot,
+      eventType: 'created',
+      cameraName: camera.name,
+    });
 
     return snapshot;
   }
@@ -152,6 +177,18 @@ export class SnapshotsService {
         id,
       },
       data,
+      include: {
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+        gateway: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (emitLocal)
@@ -159,6 +196,12 @@ export class SnapshotsService {
         eventType: 'updated',
         snapshot,
       });
+
+    this._snapshotEvents.next({
+      snapshot,
+      eventType: 'updated',
+      cameraName: snapshot.camera.name,
+    });
 
     return snapshot;
   }
@@ -219,6 +262,12 @@ export class SnapshotsService {
         snapshot: deleted,
         cameraName: deleted.camera.name,
       });
+
+    this._snapshotEvents.next({
+      snapshot: deleted,
+      eventType: 'deleted',
+      cameraName: deleted.camera.name,
+    });
 
     return deleted;
   }

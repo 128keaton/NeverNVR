@@ -24,9 +24,13 @@ export class SnapshotsGateway extends CommonGateway {
   ) {
     super(gatewaysService);
     this.logger.verbose('Snapshots gateway active');
+
+    this.snapshotsService.snapshotEvents.subscribe((event) => {
+      this.handleSnapshotEvent(event);
+    });
   }
 
-  handleSnapshotEvent(event: SnapshotEvent) {
+  handleSnapshotEvent(event: SnapshotEvent, emitLocal = true) {
     const client = this.getGatewayClient(event.snapshot.gatewayID);
     const snapshot = {
       ...event.snapshot,
@@ -36,11 +40,15 @@ export class SnapshotsGateway extends CommonGateway {
 
     delete snapshot.gatewayID;
 
-    const didEmit = client.emit(event.eventType, {
-      id: event.snapshot.id,
-      snapshot,
-      cameraName: event.cameraName,
-    });
+    if (emitLocal) {
+      const didEmit = client.emit(event.eventType, {
+        id: event.snapshot.id,
+        snapshot,
+        cameraName: event.cameraName,
+      });
+
+      if (!didEmit) this.logger.warn('Could not emit');
+    }
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
@@ -53,10 +61,6 @@ export class SnapshotsGateway extends CommonGateway {
         cameraName: event.cameraName,
       });
     });
-
-    if (!didEmit) this.logger.warn('Could not emit');
-
-    return didEmit;
   }
 
   @SubscribeMessage('response')

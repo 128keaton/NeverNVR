@@ -29,9 +29,6 @@ export class Clip {
   end?: Date;
 
   @ApiProperty()
-  processing: boolean;
-
-  @ApiProperty()
   availableLocally: boolean;
 
   @ApiProperty()

@@ -24,22 +24,35 @@ export class ClipsGateway extends CommonGateway {
   ) {
     super(gatewaysService);
     this.logger.verbose('Clips gateway active');
+
+    this.clipsService.clipEvents.subscribe((event) => {
+      this.handleClipEvent(event, false);
+    });
   }
 
-  handleClipEvent(event: ClipEvent) {
-    const client = this.getGatewayClient(event.clip.gatewayID);
-
+  handleClipEvent(event: ClipEvent, emitLocal = true) {
     const clip = {
       ...event.clip,
     };
 
-    delete clip.gatewayID;
+    if (emitLocal) {
+      const client = this.getGatewayClient(event.clip.gatewayID);
 
-    const didEmit = client.emit(event.eventType, {
-      id: event.clip.id,
-      clip,
-      cameraName: event.cameraName,
-    });
+      delete clip.gatewayID;
+
+      const didEmit = client.emit(event.eventType, {
+        id: event.clip.id,
+        clip: {
+          ...clip,
+          camera: {
+            name: event.cameraName,
+          },
+        },
+        cameraName: event.cameraName,
+      });
+
+      if (!didEmit) this.logger.warn('Could not emit');
+    }
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
@@ -52,10 +65,6 @@ export class ClipsGateway extends CommonGateway {
         cameraName: event.cameraName,
       });
     });
-
-    if (!didEmit) this.logger.warn('Could not emit');
-
-    return didEmit;
   }
 
   @SubscribeMessage('response')
@@ -90,6 +99,7 @@ export class ClipsGateway extends CommonGateway {
       gatewayID: string;
     },
   ) {
+    this.logger.verbose(`Creating new clip from ${request.gatewayID}`);
     return this.clipsService.create(
       {
         ...request.clip,

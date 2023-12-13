@@ -65,10 +65,18 @@ export class CamerasGateway extends CommonGateway {
   ) {
     switch (response.type) {
       case 'identify':
-        this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
-        );
-        this.associateGatewayID(client.id, response.data.gatewayID).then();
+        if (!!response.data.gatewayID) {
+          this.logger.verbose(
+            `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
+          );
+          this.associateGatewayID(client.id, response.data.gatewayID).then();
+          this.camerasService
+            .checkForMissingCameras(
+              response.data.gatewayID,
+              response.data.cameras,
+            )
+            .then();
+        }
         break;
       default:
         this.logger.verbose(

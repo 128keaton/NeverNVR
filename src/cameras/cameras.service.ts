@@ -5,6 +5,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { CameraEvent, CameraUpdate, CameraCreate, Camera } from './types';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map } from 'rxjs';
+import { ConnectionStatus } from '@prisma/client';
 
 @Injectable()
 export class CamerasService {
@@ -186,6 +187,51 @@ export class CamerasService {
       });
 
     return camera;
+  }
+
+  async checkForMissingCameras(
+    gatewayID: string,
+    camerasFromGateway: {
+      id: string;
+      name: string;
+      stream: boolean;
+      record: boolean;
+      lastConnection?: Date;
+      synchronized: boolean;
+      status: ConnectionStatus;
+      deleteSnapshotAfter: number;
+      deleteClipAfter: number;
+    }[],
+  ) {
+    let camerasCreated = 0;
+    for (const gatewayCamera of camerasFromGateway) {
+      const camera = await this.get(gatewayCamera.id);
+
+      if (!camera) {
+        await this.prismaService.camera.create({
+          data: {
+            id: gatewayCamera.id,
+            name: gatewayCamera.name,
+            stream: gatewayCamera.stream,
+            record: gatewayCamera.record,
+            lastConnection: gatewayCamera.lastConnection,
+            synchronized: gatewayCamera.synchronized,
+            status: gatewayCamera.status,
+            deleteClipAfter: gatewayCamera.deleteClipAfter,
+            deleteSnapshotAfter: gatewayCamera.deleteSnapshotAfter,
+            gateway: {
+              connect: {
+                id: gatewayID,
+              },
+            },
+          },
+        });
+        camerasCreated++;
+      }
+    }
+
+    if (camerasCreated > 0)
+      this.logger.verbose(`Created ${camerasCreated} cameras`);
   }
 
   private updateSynchronized(id: string, synchronized: boolean) {
