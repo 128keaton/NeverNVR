@@ -2,8 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import {
   GatewayCreate,
-  GatewayDiskSpace,
-  GatewayStats,
+  GatewayDiskSpace, GatewayStats,
   GatewayUpdate,
 } from './types';
 import { ConnectionStatus } from '@prisma/client';
@@ -31,16 +30,16 @@ export class GatewaysService {
     });
   }
 
-  async getStats(id: string) {
+  async getGatewayStats(gatewayID: string) {
     const gateway = await this.prismaService.gateway.findFirst({
       where: {
-        id,
+        id: gatewayID,
       },
     });
 
     if (!gateway)
       throw new HttpException(
-        `Could not find gateway with ID ${id}`,
+        `Could not find gateway with ID ${gatewayID}`,
         HttpStatus.NOT_FOUND,
       );
 

@@ -42,7 +42,8 @@ export class GatewaysGateway extends CommonGateway {
 
   @SubscribeMessage('request')
   handleRequest(
-    @MessageBody() request: { type: 'diskSpace' | 'stats'; gatewayID: string },
+    @MessageBody()
+    request: { type: 'diskSpace' | 'gatewayStats'; gatewayID: string },
     @ConnectedSocket() client: Socket,
   ) {
     switch (request.type) {
@@ -53,9 +54,9 @@ export class GatewaysGateway extends CommonGateway {
             client.emit('diskSpace', diskSpace);
           });
 
-      case 'stats':
+      case 'gatewayStats':
         return this.gatewaysService
-          .getStats(request.gatewayID)
+          .getGatewayStats(request.gatewayID)
           .then((stats) => {
             client.emit('stats', stats);
           });
@@ -78,7 +79,7 @@ export class GatewaysGateway extends CommonGateway {
       });
   }
 
-  @SubscribeMessage('stats')
+  @SubscribeMessage('gatewayStats')
   handleStats(
     @MessageBody() response: { gatewayID: string; stats: GatewayStats },
     @ConnectedSocket() sendingClient: Socket,
