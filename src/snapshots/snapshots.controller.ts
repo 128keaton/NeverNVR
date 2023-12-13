@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Header, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  DefaultValuePipe,
+  Delete,
+  Get,
+  Header,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SnapshotsService } from './snapshots.service';
 import { SnapshotsResponse, SnapshotUrlResponse } from './types';
@@ -17,9 +25,18 @@ export class SnapshotsController {
   get(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('timestamp')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
   ) {
-    return this.snapshotsService.getSnapshots(pageSize, pageNumber, search);
+    return this.snapshotsService.getSnapshots(
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
+    );
   }
 
   @Get('list/:cameraID')

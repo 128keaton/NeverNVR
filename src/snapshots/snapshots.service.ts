@@ -95,9 +95,16 @@ export class SnapshotsService {
     return snapshot;
   }
 
-  getSnapshots(pageSize?: number, pageNumber?: number, search?: string) {
+  getSnapshots(
+    pageSize?: number,
+    pageNumber?: number,
+    search?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc' | '',
+  ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
+    const orderBy = {};
     let where: any = {};
 
     if (!!search) {
@@ -110,13 +117,14 @@ export class SnapshotsService {
       };
     }
 
+    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
+    else orderBy['timestamp'] = sortDirection || 'desc';
+
     return paginate<Snapshot, Prisma.SnapshotFindManyArgs>(
       this.prismaService.snapshot,
       {
         where,
-        orderBy: {
-          timestamp: 'desc',
-        },
+        orderBy,
         include: {
           gateway: {
             select: {
