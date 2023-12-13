@@ -57,6 +57,18 @@ export class CamerasController {
     return this.camerasService.getLogOutput(id);
   }
 
+  @Get(':id/restart/recording')
+  @ApiOperation({ summary: 'Restart camera recording process' })
+  async restartRecording(@Param('id') id: string) {
+    return this.camerasService.restartRecording(id);
+  }
+
+  @Get(':id/restart/streaming')
+  @ApiOperation({ summary: 'Restart camera streaming process' })
+  async restartStreaming(@Param('id') id: string) {
+    return this.camerasService.restartStreaming(id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all cameras' })
   @ApiResponse({
