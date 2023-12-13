@@ -51,6 +51,12 @@ export class CamerasController {
     return this.camerasService.getDetails(id);
   }
 
+  @Get(':id/logs')
+  @ApiOperation({ summary: 'Get a cameras logs' })
+  getLogs(@Param('id') id: string) {
+    return this.camerasService.getLogOutput(id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all cameras' })
   @ApiResponse({

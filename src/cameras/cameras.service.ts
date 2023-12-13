@@ -60,6 +60,34 @@ export class CamerasService {
     );
   }
 
+  async getLogOutput(id: string) {
+    const camera = await this.get(id);
+
+    if (!camera)
+      throw new HttpException(
+        `Could not find camera with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id: camera.gatewayID,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Could not find gateway with ID ${camera.gatewayID}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    return lastValueFrom(
+      this.httpService
+        .get(`${gateway.connectionURL}/api/cameras/${id}/logs`)
+        .pipe(map((response) => response.data)),
+    );
+  }
+
   async getMany() {
     const cameras = await this.prismaService.camera.findMany({
       include: {
