@@ -70,12 +70,19 @@ export class CamerasGateway extends CommonGateway {
             `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
           );
           this.associateGatewayID(client.id, response.data.gatewayID).then();
-          this.camerasService
-            .checkForMissingCameras(
-              response.data.gatewayID,
-              response.data.cameras,
-            )
-            .then();
+
+          if (!!response.data.cameras) {
+            this.camerasService
+              .checkForMissingCameras(
+                response.data.gatewayID,
+                response.data.cameras,
+              )
+              .then();
+          } else {
+            this.logger.warn(
+              `Response was missing cameras: ${JSON.stringify(response.data)}`,
+            );
+          }
         }
         break;
       default:
