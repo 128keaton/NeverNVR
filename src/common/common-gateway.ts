@@ -22,9 +22,15 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const disconnectedClient = this.clients.find((client) => client.id);
 
     if (!!disconnectedClient) {
-      this.logger.verbose(
-        `Client with gatewayID ${disconnectedClient.gatewayID} has disconnected`,
-      );
+      if (!!disconnectedClient.gatewayID)
+        this.logger.verbose(
+          `Client with gatewayID ${disconnectedClient.gatewayID} has disconnected`,
+        );
+      else
+        this.logger.verbose(
+          `Client with ID ${disconnectedClient.id} has disconnected`,
+        );
+
       this.clients.filter((c) => c.id !== disconnectedClient.id);
     }
   }
