@@ -35,6 +35,14 @@ export class CamerasService {
       where: {
         id,
       },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            connectionURL: true,
+          },
+        },
+      },
     });
   }
 
@@ -196,6 +204,7 @@ export class CamerasService {
         gateway: {
           select: {
             name: true,
+            connectionURL: true,
           },
         },
       },
@@ -252,6 +261,14 @@ export class CamerasService {
             gateway: {
               connect: {
                 id: gatewayID,
+              },
+            },
+          },
+          include: {
+            gateway: {
+              select: {
+                name: true,
+                connectionURL: true,
               },
             },
           },
