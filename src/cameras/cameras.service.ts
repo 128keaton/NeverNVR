@@ -4,12 +4,17 @@ import { Job, Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import { CameraEvent, CameraUpdate, CameraCreate, Camera } from './types';
 import { HttpService } from '@nestjs/axios';
-import { lastValueFrom, map } from 'rxjs';
+import { lastValueFrom, map, Subject } from 'rxjs';
 import { ConnectionStatus } from '@prisma/client';
 
 @Injectable()
 export class CamerasService {
+  private _cameraEvents = new Subject<CameraEvent>();
   private logger = new Logger(CamerasService.name);
+
+  get cameraEvents() {
+    return this._cameraEvents.asObservable();
+  }
 
   constructor(
     private httpService: HttpService,
@@ -132,6 +137,12 @@ export class CamerasService {
         create,
       });
 
+    this._cameraEvents.next({
+      eventType: 'created',
+      camera,
+      create,
+    });
+
     return camera;
   }
 
@@ -158,6 +169,11 @@ export class CamerasService {
         camera,
       });
 
+    this._cameraEvents.next({
+      eventType: 'deleted',
+      camera,
+    });
+
     return camera;
   }
 
@@ -174,6 +190,14 @@ export class CamerasService {
         deleteClipAfter: update.deleteClipAfter,
         deleteSnapshotAfter: update.deleteSnapshotAfter,
         synchronized: !emit,
+        lastConnection: update.lastConnection,
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -185,6 +209,12 @@ export class CamerasService {
         camera,
         update,
       });
+
+    this._cameraEvents.next({
+      eventType: 'updated',
+      camera,
+      update,
+    });
 
     return camera;
   }
@@ -205,10 +235,10 @@ export class CamerasService {
   ) {
     let camerasCreated = 0;
     for (const gatewayCamera of camerasFromGateway) {
-      const camera = await this.get(gatewayCamera.id);
+      let camera = await this.get(gatewayCamera.id);
 
       if (!camera) {
-        await this.prismaService.camera.create({
+        camera = await this.prismaService.camera.create({
           data: {
             id: gatewayCamera.id,
             name: gatewayCamera.name,
@@ -226,6 +256,12 @@ export class CamerasService {
             },
           },
         });
+
+        this._cameraEvents.next({
+          eventType: 'created',
+          camera,
+        });
+
         camerasCreated++;
       }
     }

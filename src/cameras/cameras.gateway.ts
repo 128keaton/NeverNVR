@@ -24,9 +24,12 @@ export class CamerasGateway extends CommonGateway {
   ) {
     super(gatewaysService);
     this.logger.verbose('Cameras gateway active');
+    this.camerasService.cameraEvents.subscribe((event) => {
+      this.handleCameraEvent(event, false);
+    });
   }
 
-  handleCameraEvent(event: CameraEvent) {
+  handleCameraEvent(event: CameraEvent, emitLocal = true) {
     const client = this.getGatewayClient(event.camera.gatewayID);
 
     const camera = {
@@ -37,7 +40,7 @@ export class CamerasGateway extends CommonGateway {
 
     delete camera.gatewayID;
 
-    if (!!client) {
+    if (!!client && emitLocal) {
       const didEmit = client.emit(event.eventType, {
         id: event.camera.id,
         camera,
