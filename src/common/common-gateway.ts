@@ -51,12 +51,7 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     if (!gatewayClient) return null;
-    else
-      this.logger.verbose(
-        `Sending message to client with ID ${gatewayClient.id} and gatewayID of ${gatewayClient.gatewayID}`,
-      );
-
-    return gatewayClient;
+    else return gatewayClient;
   }
 
   getWebClients() {

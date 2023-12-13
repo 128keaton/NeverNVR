@@ -71,7 +71,6 @@ export class GatewaysGateway extends CommonGateway {
     @MessageBody() response: { gatewayID: string; diskSpace: GatewayDiskSpace },
     @ConnectedSocket() sendingClient: Socket,
   ) {
-    this.logger.verbose('diskSpace');
     this.clients
       .filter((client) => client.id !== sendingClient.id)
       .forEach((client) => {
@@ -84,7 +83,6 @@ export class GatewaysGateway extends CommonGateway {
     @MessageBody() response: { gatewayID: string; stats: GatewayStats },
     @ConnectedSocket() sendingClient: Socket,
   ) {
-    this.logger.verbose('stats');
     this.clients
       .filter((client) => client.id !== sendingClient.id)
       .forEach((client) => {
