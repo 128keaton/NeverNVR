@@ -40,7 +40,7 @@ export class SnapshotsGateway extends CommonGateway {
 
     delete snapshot.gatewayID;
 
-    if (emitLocal) {
+    if (emitLocal && !!client) {
       const didEmit = client.emit(event.eventType, {
         id: event.snapshot.id,
         snapshot,

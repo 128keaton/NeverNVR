@@ -50,8 +50,7 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
       (client) => client.gatewayID === gatewayID,
     );
 
-    if (!gatewayClient)
-      throw new Error(`Could not find a client for gateway ID ${gatewayID}`);
+    if (!gatewayClient) return null;
     else
       this.logger.verbose(
         `Sending message to client with ID ${gatewayClient.id} and gatewayID of ${gatewayClient.gatewayID}`,

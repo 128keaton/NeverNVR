@@ -35,11 +35,10 @@ export class ClipsGateway extends CommonGateway {
       ...event.clip,
     };
 
-    if (emitLocal) {
-      const client = this.getGatewayClient(event.clip.gatewayID);
+    const client = this.getGatewayClient(event.clip.gatewayID);
 
+    if (!!client && emitLocal) {
       delete clip.gatewayID;
-
       const didEmit = client.emit(event.eventType, {
         id: event.clip.id,
         clip: {
