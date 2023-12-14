@@ -1,9 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { SingleStatCount, Stats } from './types';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { SingleStatCount, SizeStat, Stats } from './types';
 import { StatsService } from './stats.service';
-import { ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('stats')
+@ApiTags('Stats')
 export class StatsController {
   constructor(private statsService: StatsService) {}
 
@@ -51,5 +52,19 @@ export class StatsController {
   })
   snapshots(@Query('cameraID') cameraID?: string) {
     return this.statsService.countSnapshots(cameraID);
+  }
+
+  @Get('bucketSize/:bucket')
+  @ApiResponse({
+    status: 200,
+    type: SizeStat,
+    isArray: true,
+  })
+  @ApiParam({
+    name: 'bucket',
+    type: String,
+  })
+  bucketSize(@Param('bucket') bucket: string) {
+    return this.statsService.getGatewayBucketSize(bucket);
   }
 }
