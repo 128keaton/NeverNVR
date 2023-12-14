@@ -147,36 +147,60 @@ export class SnapshotsService {
     );
   }
 
-  async getSnapshotsByCameraID(cameraID: string) {
-    const snapshots = await this.prismaService.snapshot.findMany({
-      where: {
+  async getSnapshotsByCameraID(
+    cameraID: string,
+    pageSize?: number,
+    pageNumber?: number,
+    search?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc' | '',
+  ) {
+    const paginate = createPaginator({ perPage: pageSize || 40 });
+
+    const orderBy: Prisma.SnapshotOrderByWithRelationInput = {};
+    let where: Prisma.SnapshotWhereInput = {
+      cameraID,
+    };
+
+    if (!!search) {
+      where = {
         cameraID,
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-      select: {
-        fileName: true,
-        id: true,
-        timezone: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        timestamp: true,
-        availableLocally: true,
-        availableCloud: true,
-        cameraID: true,
         camera: {
-          select: {
-            name: true,
+          name: {
+            contains: search,
+          },
+        },
+      };
+    }
+
+    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
+    else orderBy['timestamp'] = sortDirection || 'desc';
+
+    return paginate<Snapshot, Prisma.SnapshotFindManyArgs>(
+      this.prismaService.snapshot,
+      {
+        where,
+        orderBy,
+        include: {
+          gateway: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
+          camera: {
+            select: {
+              name: true,
+              id: true,
+            },
           },
         },
       },
-    });
-    return {
-      total: snapshots.length,
-      data: snapshots,
-    };
+      {
+        page: pageNumber,
+        perPage: pageSize,
+      },
+    );
   }
 
   async update(id: string, data: any, emitLocal = true) {

@@ -14,7 +14,7 @@ import { Interval } from '@nestjs/schedule';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
-  path: '/gateways.io/',
+  path: '/stats.io/',
 })
 export class StatsGateway extends CommonGateway {
   constructor(

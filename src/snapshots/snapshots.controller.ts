@@ -22,6 +22,43 @@ export class SnapshotsController {
     name: 'search',
     required: false,
   })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'timestamp',
+    type: String,
+    enum: [
+      'fileName',
+      'id',
+      'timezone',
+      'fileSize',
+      'width',
+      'height',
+      'timestamp',
+      'cameraID',
+      'availableCloud',
+      'availableLocally',
+    ],
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
   get(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -46,8 +83,64 @@ export class SnapshotsController {
     description: 'The snapshots for the given camera ID',
     type: SnapshotsResponse,
   })
-  forCameraID(@Param('cameraID') cameraID: string) {
-    return this.snapshotsService.getSnapshotsByCameraID(cameraID);
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'timestamp',
+    type: String,
+    enum: [
+      'fileName',
+      'id',
+      'timezone',
+      'fileSize',
+      'width',
+      'height',
+      'timestamp',
+      'cameraID',
+      'availableCloud',
+      'availableLocally',
+    ],
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
+  forCameraID(
+    @Param('cameraID') cameraID: string,
+    @Query('pageSize') pageSize = 40,
+    @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('timestamp')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
+    @Query('search') search?: string,
+  ) {
+    return this.snapshotsService.getSnapshotsByCameraID(
+      cameraID,
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
+    );
   }
 
   @Get(':snapshotID')

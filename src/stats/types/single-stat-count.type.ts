@@ -5,7 +5,7 @@ export class SingleStatCount {
   count: number;
 
   @ApiProperty({
-    enum: ['cameras', 'clips', 'snapshots'],
+    enum: ['cameras', 'clips', 'snapshots', 'gateways'],
   })
-  type: 'cameras' | 'clips' | 'snapshots';
+  type: 'cameras' | 'clips' | 'snapshots' | 'gateways';
 }

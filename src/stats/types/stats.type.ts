@@ -9,4 +9,7 @@ export class Stats {
 
   @ApiProperty()
   snapshots: number;
+
+  @ApiProperty()
+  gateways: number;
 }

@@ -1,25 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import { SingleStatCount, Stats } from './types';
-import { GatewaysService } from '../gateways/gateways.service';
 
 @Injectable()
 export class StatsService {
-  constructor(
-    private gatewaysService: GatewaysService,
-    private prismaService: PrismaService,
-  ) {}
-
-  getGatewayStats(gatewayID: string) {
-    return this.gatewaysService.getGatewayStats(gatewayID);
-  }
+  constructor(private prismaService: PrismaService) {}
 
   async countAll(): Promise<Stats> {
     const cameras = await this.prismaService.camera.count();
     const clips = await this.prismaService.clip.count();
     const snapshots = await this.prismaService.snapshot.count();
+    const gateways = await this.prismaService.gateway.count();
 
-    return { cameras, clips, snapshots };
+    return { cameras, clips, snapshots, gateways };
   }
 
   async countCameras(): Promise<SingleStatCount> {
@@ -56,6 +49,15 @@ export class StatsService {
     return {
       count: snapshots,
       type: 'snapshots',
+    };
+  }
+
+  async countGateways(): Promise<SingleStatCount> {
+    const gateways = await this.prismaService.gateway.count();
+
+    return {
+      count: gateways,
+      type: 'gateways',
     };
   }
 }

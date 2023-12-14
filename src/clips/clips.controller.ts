@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Header, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  DefaultValuePipe,
+  Delete,
+  Get,
+  Header,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { ClipsService } from './clips.service';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ClipsResponse, ClipUrlResponse } from './type';
@@ -14,12 +22,61 @@ export class ClipsController {
     name: 'search',
     required: false,
   })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'start',
+    type: String,
+    enum: [
+      'fileName',
+      'id',
+      'timezone',
+      'fileSize',
+      'width',
+      'height',
+      'duration',
+      'format',
+      'start',
+      'end',
+      'cameraID',
+      'availableCloud',
+      'availableLocally',
+    ],
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
   getClips(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('end')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
   ) {
-    return this.clipsService.getClips(pageSize, pageNumber, search);
+    return this.clipsService.getClips(
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
+    );
   }
 
   @Get('list/:cameraID')
@@ -29,8 +86,67 @@ export class ClipsController {
     description: 'The clips for the given camera ID',
     type: ClipsResponse,
   })
-  forCameraID(@Param('cameraID') cameraID: string) {
-    return this.clipsService.getClipsByCameraID(cameraID);
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'start',
+    type: String,
+    enum: [
+      'fileName',
+      'id',
+      'timezone',
+      'fileSize',
+      'width',
+      'height',
+      'duration',
+      'format',
+      'start',
+      'end',
+      'cameraID',
+      'availableCloud',
+      'availableLocally',
+    ],
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
+  forCameraID(
+    @Param('cameraID') cameraID: string,
+    @Query('pageSize') pageSize = 40,
+    @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('end')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
+    @Query('search') search?: string,
+  ) {
+    return this.clipsService.getClipsByCameraID(
+      cameraID,
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
+    );
   }
 
   @Get(':clipID/video.mp4')
