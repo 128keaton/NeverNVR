@@ -10,6 +10,8 @@ import { SnapshotsModule } from './snapshots/snapshots.module';
 import { ClipsModule } from './clips/clips.module';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { RouterModule } from '@nestjs/core';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -26,7 +28,14 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     CamerasModule,
     GatewaysModule,
     SnapshotsModule,
+    UsersModule,
     ClipsModule,
+    RouterModule.register([
+      {
+        path: 'users',
+        module: UsersModule,
+      },
+    ]),
   ],
 })
 export class AppModule {}
