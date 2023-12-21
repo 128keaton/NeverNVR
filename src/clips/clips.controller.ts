@@ -163,8 +163,16 @@ export class ClipsController {
     description: 'The download URL for the clip from S3',
     type: ClipUrlResponse,
   })
-  getVideoDownloadURL(@Param('clipID') clipID: string) {
-    return this.clipsService.getClipDownloadURL(clipID);
+  @ApiQuery({
+    name: 'analyzed',
+    required: false,
+    type: Boolean,
+  })
+  getVideoDownloadURL(
+    @Param('clipID') clipID: string,
+    @Query('analyzed', new DefaultValuePipe(false)) analyzed: boolean,
+  ) {
+    return this.clipsService.getClipDownloadURL(clipID, analyzed);
   }
 
   @Get(':clipID')

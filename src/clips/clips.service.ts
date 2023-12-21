@@ -437,13 +437,14 @@ export class ClipsService {
     );
   }
 
-  async getClipDownloadURL(id: string) {
+  async getClipDownloadURL(id: string, analyzed: boolean) {
     const clip = await this.prismaService.clip.findFirst({
       where: {
         id,
       },
       select: {
         fileName: true,
+        analyzedFileName: true,
         availableCloud: true,
         gateway: {
           select: {
@@ -470,8 +471,14 @@ export class ClipsService {
         HttpStatusCode.NotFound,
       );
 
+    if (!clip.analyzedFileName && analyzed === true)
+      throw new HttpException(
+        'Clip has not been analyzed',
+        HttpStatusCode.BadRequest,
+      );
+
     const fileKey = AppHelpers.getFileKey(
-      clip.fileName,
+      analyzed === true ? clip.analyzedFileName : clip.fileName,
       clip.camera.name,
       '.mp4',
     );

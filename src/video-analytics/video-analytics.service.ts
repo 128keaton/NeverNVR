@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { ClassificationResponse, JobResponse } from './responses';
-import { catchError, map, of } from 'rxjs';
+import { catchError, filter, map, of } from 'rxjs';
 import { AppHelpers } from '../app.helpers';
 import { io, Socket } from 'socket.io-client';
 import { InjectQueue } from '@nestjs/bull';
@@ -136,21 +136,23 @@ export class VideoAnalyticsService {
   }
 
   handleJobFileProcessed(file: string, job: JobResponse) {
-    this.getClassificationData(file, job.id).subscribe((classification) => {
-      const data = {
-        analyticsJobID: job.id,
-        analyzedFileName: classification.annotated_file_name,
-        analyzed: classification.processed,
-        primaryTag: classification.tags[0],
-        tags: classification.tags,
-      };
+    this.getClassificationData(file, job.id)
+      .pipe(filter(Boolean))
+      .subscribe((classification) => {
+        const data = {
+          analyticsJobID: job.id,
+          analyzedFileName: classification.annotated_file_name,
+          analyzed: classification.processed,
+          primaryTag: classification.tags[0],
+          tags: classification.tags,
+        };
 
-      if (file.includes('.mp4'))
-        return this.clipQueue.add('finished-analyze', data, { delay: 1000 });
+        if (file.includes('.mp4'))
+          return this.clipQueue.add('finished-analyze', data, { delay: 1000 });
 
-      return this.snapshotQueue.add('finished-analyze', data, {
-        delay: 1000,
+        return this.snapshotQueue.add('finished-analyze', data, {
+          delay: 1000,
+        });
       });
-    });
   }
 }
