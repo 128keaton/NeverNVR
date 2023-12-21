@@ -8,7 +8,9 @@ import { createPaginator } from 'prisma-pagination';
 import { Prisma, Snapshot } from '@prisma/client';
 import { S3Service } from '../services/s3/s3.service';
 import { AppHelpers } from '../app.helpers';
-import { Subject } from 'rxjs';
+import { lastValueFrom, Subject } from 'rxjs';
+import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class SnapshotsService {
@@ -22,8 +24,43 @@ export class SnapshotsService {
   constructor(
     private prismaService: PrismaService,
     private s3Service: S3Service,
+    private videoAnalyticsService: VideoAnalyticsService,
     @InjectQueue('snapshots') private snapshotsQueue: Queue<SnapshotEvent>,
   ) {}
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async updateAnalyzingSnapshots() {
+    const snapshots = await this.prismaService.snapshot.findMany({
+      where: {
+        analyzing: true,
+      },
+    });
+
+    for (const snapshot of snapshots) {
+      const now = new Date();
+      const FIVE_MIN = 5 * 60 * 1000;
+
+      if (!snapshot.analyzeStart) {
+        await this.update(snapshot.id, { analyzeStart: new Date() });
+      } else if (
+        now.getDate() - new Date(snapshot.analyzeStart).getDate() > FIVE_MIN &&
+        !!snapshot.analyticsJobID
+      ) {
+        const job = await lastValueFrom(
+          this.videoAnalyticsService.checkJobStatus(snapshot.analyticsJobID),
+        );
+
+        if (job.stalled) {
+          await this.update(snapshot.id, { analyzing: false });
+        } else if (job.files_processed.includes(snapshot.fileName)) {
+          this.videoAnalyticsService.handleJobFileProcessed(
+            snapshot.fileName,
+            job,
+          );
+        }
+      }
+    }
+  }
 
   async create(create: SnapshotCreate, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
@@ -41,6 +78,26 @@ export class SnapshotsService {
     if (!camera)
       throw new HttpException('Could not find camera', HttpStatusCode.NotFound);
 
+    let analyticsJobID: string | undefined;
+    if (create.availableCloud) {
+      const gateway = await this.prismaService.gateway.findFirst({
+        where: {
+          id: create.gatewayID,
+        },
+        select: {
+          s3Bucket: true,
+        },
+      });
+
+      analyticsJobID = await lastValueFrom(
+        this.videoAnalyticsService.classifyImage(
+          create.fileName,
+          camera.name,
+          gateway.s3Bucket,
+        ),
+      );
+    }
+
     const snapshot = await this.prismaService.snapshot.create({
       data: {
         id: create.id,
@@ -50,6 +107,7 @@ export class SnapshotsService {
         width: create.width,
         height: create.height,
         timestamp: create.timestamp,
+        analyticsJobID,
         gateway: {
           connect: {
             id: create.gatewayID,
@@ -383,5 +441,13 @@ export class SnapshotsService {
     );
 
     return this.s3Service.getFile(fileKey, snapshot.gateway.s3Bucket);
+  }
+
+  getByAnalyticsJobID(analyticsJobID: string) {
+    return this.prismaService.snapshot.findFirst({
+      where: {
+        analyticsJobID,
+      },
+    });
   }
 }

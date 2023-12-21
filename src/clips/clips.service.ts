@@ -8,7 +8,9 @@ import { ClipFormat, Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { HttpStatusCode } from 'axios';
-import { Subject } from 'rxjs';
+import { lastValueFrom, Subject } from 'rxjs';
+import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class ClipsService {
@@ -22,8 +24,40 @@ export class ClipsService {
   constructor(
     private s3Service: S3Service,
     private prismaService: PrismaService,
+    private videoAnalyticsService: VideoAnalyticsService,
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async updateAnalyzingClips() {
+    const clips = await this.prismaService.clip.findMany({
+      where: {
+        analyzing: true,
+      },
+    });
+
+    for (const clip of clips) {
+      const now = new Date();
+      const FIVE_MIN = 5 * 60 * 1000;
+
+      if (!clip.analyzeStart) {
+        await this.update(clip.id, { analyzeStart: new Date() });
+      } else if (
+        now.getDate() - new Date(clip.analyzeStart).getDate() > FIVE_MIN &&
+        !!clip.analyticsJobID
+      ) {
+        const job = await lastValueFrom(
+          this.videoAnalyticsService.checkJobStatus(clip.analyticsJobID),
+        );
+
+        if (job.stalled) {
+          await this.update(clip.id, { analyzing: false });
+        } else if (job.files_processed.includes(clip.fileName)) {
+          this.videoAnalyticsService.handleJobFileProcessed(clip.fileName, job);
+        }
+      }
+    }
+  }
 
   getClip(id: string) {
     return this.prismaService.clip.findFirst({
@@ -89,6 +123,14 @@ export class ClipsService {
     return deleted;
   }
 
+  getByAnalyticsJobID(analyticsJobID: string) {
+    return this.prismaService.clip.findFirst({
+      where: {
+        analyticsJobID,
+      },
+    });
+  }
+
   async create(create: Clip, cameraName: string, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
@@ -100,6 +142,26 @@ export class ClipsService {
         id: true,
       },
     });
+
+    let analyticsJobID: string | undefined;
+    if (create.availableCloud) {
+      const gateway = await this.prismaService.gateway.findFirst({
+        where: {
+          id: create.gatewayID,
+        },
+        select: {
+          s3Bucket: true,
+        },
+      });
+
+      analyticsJobID = await lastValueFrom(
+        this.videoAnalyticsService.classifyVideoClip(
+          create.fileName,
+          cameraName,
+          gateway.s3Bucket,
+        ),
+      );
+    }
 
     const clip = await this.prismaService.clip
       .create({
@@ -116,6 +178,7 @@ export class ClipsService {
           timezone: camera.timezone,
           availableLocally: create.availableLocally,
           availableCloud: create.availableCloud,
+          analyticsJobID,
           camera: {
             connect: {
               id: camera.id,
@@ -175,6 +238,14 @@ export class ClipsService {
       processing?: boolean;
       availableLocally?: boolean;
       availableCloud?: boolean;
+      analyticsJobID?: string;
+      analyzedFileName?: string;
+      analyzed?: boolean;
+      analyzing?: boolean;
+      analyzeStart?: Date;
+      analyzeEnd?: Date;
+      primaryTag?: string;
+      tags?: string[];
     },
   ) {
     const updatedClip = await this.prismaService.clip.update({
@@ -192,6 +263,14 @@ export class ClipsService {
         end: clip.end,
         availableLocally: clip.availableLocally,
         availableCloud: clip.availableCloud,
+        analyticsJobID: clip.analyticsJobID,
+        analyzedFileName: clip.analyzedFileName,
+        analyzed: clip.analyzed,
+        analyzing: clip.analyzing,
+        analyzeStart: clip.analyzeStart,
+        analyzeEnd: clip.analyzeEnd,
+        primaryTag: clip.primaryTag,
+        tags: clip.tags,
       },
       include: {
         gateway: true,

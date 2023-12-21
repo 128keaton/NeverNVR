@@ -7,6 +7,7 @@ import { S3Module } from '../services/s3/s3.module';
 import { ClipsGateway } from './clips.gateway';
 import { ClipsQueue } from './clips.queue';
 import { ClipsController } from './clips.controller';
+import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
 
 @Module({
   providers: [ClipsService, ClipsGateway, ClipsQueue],
@@ -15,6 +16,7 @@ import { ClipsController } from './clips.controller';
     S3Module,
     PrismaModule,
     GatewaysModule,
+    VideoAnalyticsModule,
     BullModule.registerQueue({
       name: 'clips',
     }),

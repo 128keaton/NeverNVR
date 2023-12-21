@@ -11,6 +11,7 @@ import { ClipsModule } from './clips/clips.module';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { StatsModule } from './stats/stats.module';
+import { VideoAnalyticsModule } from './video-analytics/video-analytics.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { StatsModule } from './stats/stats.module';
     SnapshotsModule,
     ClipsModule,
     StatsModule,
+    VideoAnalyticsModule,
   ],
 })
 export class AppModule {}
