@@ -27,6 +27,17 @@ export class VideoAnalyticsService {
       transports: ['websocket'],
     });
 
+    this.videoAnalyticsSocket.on('connect_error', (err) => {
+      this.logger.error(err);
+      setTimeout(() => {
+        this.videoAnalyticsSocket.connect();
+      }, 1000);
+    });
+
+    this.videoAnalyticsSocket.on('connect', () => {
+      this.logger.verbose('Connected to Video Analytics API over WebSocket');
+    });
+
     this.videoAnalyticsSocket.on('job_finished', (job) => {
       this.handleJobFinished(job);
     });
