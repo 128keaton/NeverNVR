@@ -25,6 +25,7 @@ export class VideoAnalyticsService {
     this.videoAnalyticsSocket = io(this.configService.get('VA_WS_URL') || '', {
       autoConnect: true,
       transports: ['websocket'],
+      path: '/socket',
     });
 
     this.videoAnalyticsSocket.on('connect_error', (err) => {
