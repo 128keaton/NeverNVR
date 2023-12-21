@@ -304,11 +304,20 @@ export class ClipsService {
 
     if (!!search) {
       where = {
-        camera: {
-          name: {
-            contains: search,
+        OR: [
+          {
+            camera: {
+              name: {
+                contains: search,
+              },
+            },
           },
-        },
+          {
+            primaryTag: {
+              contains: search,
+            },
+          },
+        ],
       };
     }
 
