@@ -22,9 +22,8 @@ export class VideoAnalyticsService {
   ) {
     this.apiURL = this.configService.get('VA_API_URL') || '';
 
-    this.videoAnalyticsSocket = io(this.configService.get('VA_WS_URL') || '', {
+    this.videoAnalyticsSocket = io(this.configService.get('VA_API_URL') || '', {
       autoConnect: true,
-      transports: ['websocket'],
     });
 
     this.videoAnalyticsSocket.on('connect_error', (err) => {
