@@ -166,6 +166,17 @@ export class SnapshotsController {
     return this.snapshotsService.getSnapshotDownloadURL(snapshotID);
   }
 
+  @Get(':snapshotID/analyzedURL')
+  @ApiOperation({ summary: 'Get a signed snapshot image URL' })
+  @ApiResponse({
+    status: 200,
+    description: 'The snapshot URL for the given snapshot ID',
+    type: SnapshotUrlResponse,
+  })
+  getAnalyzedSnapshotDownloadURL(@Param('snapshotID') snapshotID: string) {
+    return this.snapshotsService.getSnapshotDownloadURL(snapshotID, true);
+  }
+
   @Get(':snapshotID/image.jpeg')
   @ApiOperation({ summary: 'Get a snapshot image' })
   @Header('Content-Type', 'image/jpeg')

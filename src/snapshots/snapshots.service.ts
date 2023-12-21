@@ -362,7 +362,7 @@ export class SnapshotsService {
     return deleted;
   }
 
-  async getSnapshotDownloadURL(id: string) {
+  async getSnapshotDownloadURL(id: string, analyzed = false) {
     const snapshot = await this.prismaService.snapshot.findFirst({
       where: {
         id,
@@ -371,6 +371,7 @@ export class SnapshotsService {
         fileName: true,
         availableCloud: true,
         availableLocally: true,
+        analyzedFileName: true,
         gateway: {
           select: {
             s3Bucket: true,
@@ -393,8 +394,14 @@ export class SnapshotsService {
     if (!snapshot.availableCloud)
       throw new HttpException('Snapshot not uploaded', HttpStatusCode.NotFound);
 
+    if (!snapshot.analyzedFileName && analyzed === true)
+      throw new HttpException(
+        'Snapshot has not been analyzed',
+        HttpStatusCode.NotFound,
+      );
+
     const fileKey = AppHelpers.getFileKey(
-      snapshot.fileName,
+      analyzed ? snapshot.analyzedFileName : snapshot.fileName,
       snapshot.camera.name,
       '.jpeg',
     );
