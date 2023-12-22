@@ -6,6 +6,7 @@ import {
 } from '../services/novu/services';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -106,5 +107,130 @@ export class UsersService {
 
     await this.sendSetupEmail(user, resetToken);
     return user;
+  }
+
+  update(
+    id: string,
+    update: {
+      name?: string;
+      refreshToken?: string;
+    },
+  ) {
+    return this.prismaService.extended.user.update({
+      where: {
+        id,
+      },
+      data: update,
+    });
+  }
+
+  async getRefreshTokensPasswordByID(id: string) {
+    if (!id) return undefined;
+
+    return this.prismaService.extended.user.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        refreshToken: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+  }
+
+  async findOneByResetToken(resetToken: string): Promise<User | undefined> {
+    if (!resetToken) return undefined;
+
+    return this.prismaService.extended.user.findFirst({
+      where: {
+        passwordResetToken: {
+          equals: resetToken,
+        },
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        password: true,
+        id: true,
+        refreshToken: true,
+        passwordResetToken: true,
+        createdAt: true,
+        lastLogin: true,
+      },
+    });
+  }
+
+  async findOneByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
+
+    return this.prismaService.extended.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        password: true,
+        id: true,
+        refreshToken: true,
+        passwordResetToken: true,
+        createdAt: true,
+        lastLogin: true,
+      },
+    });
+  }
+
+  async updatePassword(id: string, password: string) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    return this.prismaService.extended.user.update({
+      where: {
+        id,
+      },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+      },
+    });
+  }
+
+  async sendPasswordReset(userID: string) {
+    const resetToken = Math.random().toString(36).slice(-8);
+    const passwordResetToken = await bcrypt.hash(resetToken, 10);
+
+    const user = await this.prismaService.extended.user.update({
+      where: {
+        id: userID,
+      },
+      data: {
+        passwordResetToken,
+      },
+      select: {
+        email: true,
+      },
+    });
+
+    const resetLink = `${this.frontendURL}/auth/password/reset?token=${resetToken}`;
+    const didSend = await this.novuMessagesService
+      .triggerEmail('password-reset', userID, user.email, {
+        resetLink,
+        securityEmail: this.securityEmail,
+      })
+      .then(() => true)
+      .catch((err) => {
+        this.logger.error(err);
+        return false;
+      });
+
+    return { success: didSend };
   }
 }
