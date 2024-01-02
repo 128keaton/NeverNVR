@@ -358,7 +358,7 @@ export class ClipsService {
       };
     }
 
-    if (!!showAnalyzedOnly && showAnalyzedOnly === 'true') {
+    if (showAnalyzedOnly === 'true') {
       this.logger.log(`Showing analyzed only: ${showAnalyzedOnly}`);
       where = {
         ...where,
