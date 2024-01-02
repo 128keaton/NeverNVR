@@ -1,20 +1,50 @@
 import {
+  Body,
   Controller,
   DefaultValuePipe,
   Delete,
   Get,
   Header,
   Param,
+  Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SnapshotsService } from './snapshots.service';
-import { SnapshotsResponse, SnapshotUrlResponse } from './types';
+import {
+  SnapshotsResponse,
+  SnapshotUpload,
+  SnapshotUrlResponse,
+} from './types';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('snapshots')
 @ApiTags('Snapshots')
 export class SnapshotsController {
   constructor(private snapshotsService: SnapshotsService) {}
+
+  @Post()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload and create a snapshot' })
+  @ApiBody({
+    type: SnapshotUpload,
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  uploadAndCreate(
+    @Body() request: SnapshotUpload,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.snapshotsService.uploadAndCreate(request, file);
+  }
 
   @Get()
   @ApiOperation({ summary: 'List all snapshots' })
@@ -59,6 +89,29 @@ export class SnapshotsController {
     type: String,
     enum: ['asc', 'desc', ''],
   })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: String,
+    enum: ['true', 'false', ''],
+  })
   get(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -66,13 +119,22 @@ export class SnapshotsController {
     @Query('sortDirection', new DefaultValuePipe('desc'))
     sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
+    @Query('gatewayID') gatewayID?: string,
+    @Query('showAnalyzedOnly') showAnalyzedOnly?: string,
   ) {
     return this.snapshotsService.getSnapshots(
+      undefined,
       pageSize,
       pageNumber,
       search,
       sortBy,
       sortDirection,
+      dateStart,
+      dateEnd,
+      gatewayID,
+      showAnalyzedOnly,
     );
   }
 
@@ -124,6 +186,29 @@ export class SnapshotsController {
     type: String,
     enum: ['asc', 'desc', ''],
   })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: String,
+    enum: ['true', 'false', ''],
+  })
   forCameraID(
     @Param('cameraID') cameraID: string,
     @Query('pageSize') pageSize = 40,
@@ -132,14 +217,22 @@ export class SnapshotsController {
     @Query('sortDirection', new DefaultValuePipe('desc'))
     sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
+    @Query('gatewayID') gatewayID?: string,
+    @Query('showAnalyzedOnly') showAnalyzedOnly?: string,
   ) {
-    return this.snapshotsService.getSnapshotsByCameraID(
+    return this.snapshotsService.getSnapshots(
       cameraID,
       pageSize,
       pageNumber,
       search,
       sortBy,
       sortDirection,
+      dateStart,
+      dateEnd,
+      gatewayID,
+      showAnalyzedOnly,
     );
   }
 

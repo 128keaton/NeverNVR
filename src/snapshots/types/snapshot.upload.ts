@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsNumber, IsString } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
 
-export class SnapshotCreate {
+export class SnapshotUpload {
   @ApiProperty({
     example: 'kajsdlkjaskld',
     description: 'ID of the gateway',
@@ -12,31 +12,16 @@ export class SnapshotCreate {
 
   @ApiProperty({
     example: 'UTC',
-    required: true,
+    required: false,
   })
-  @IsString()
-  timezone: string;
+  timezone?: string;
 
   @ApiProperty({
-    example: 'snapshot.jpg',
+    example: '12bd2dba-94c1-457b-b6ff-68f48831adf4',
     required: true,
   })
   @IsString()
-  id: string;
-
-  @ApiProperty({
-    example: 'camera-2',
-    required: true,
-  })
-  @IsString()
-  cameraName: string;
-
-  @ApiProperty({
-    example: 'snapshot.jpeg',
-    required: true,
-  })
-  @IsString()
-  fileName: string;
+  cameraID: string;
 
   @ApiProperty({
     example: 1238,
@@ -61,18 +46,14 @@ export class SnapshotCreate {
 
   @ApiProperty({
     type: Date,
+    required: false,
+  })
+  timestamp?: Date;
+
+  @ApiProperty({
+    type: String,
+    format: 'binary',
     required: true,
   })
-  @IsDate()
-  timestamp: Date;
-
-  @ApiProperty({
-    example: true,
-  })
-  availableLocally?: boolean;
-
-  @ApiProperty({
-    example: true,
-  })
-  availableCloud?: boolean;
+  file: Express.Multer.File;
 }

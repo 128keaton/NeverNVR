@@ -359,7 +359,6 @@ export class ClipsService {
     }
 
     if (showAnalyzedOnly === 'true') {
-      this.logger.log(`Showing analyzed only: ${showAnalyzedOnly}`);
       where = {
         ...where,
         analyzed: true,

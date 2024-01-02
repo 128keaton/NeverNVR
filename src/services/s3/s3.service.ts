@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Injectable, Logger, StreamableFile } from '@nestjs/common';
@@ -32,6 +33,39 @@ export class S3Service {
         secretAccessKey: this.secretAccessKey,
       },
     });
+  }
+
+  /**
+   * Upload a file to S3
+   * @param filePath
+   * @param bucket
+   * @param file
+   */
+  async uploadFile(
+    filePath: string,
+    bucket: string,
+    file: Express.Multer.File,
+  ) {
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: filePath,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    });
+
+    this.logger.verbose(`Uploading ${filePath} to S3 bucket ${bucket}`);
+
+    try {
+      return await this.client.send(command).then((result) => {
+        if (!!result && !!result.$metadata && !!result.$metadata.httpStatusCode)
+          return result.$metadata.httpStatusCode === 200;
+
+        return false;
+      });
+    } catch (err) {
+      this.logger.error(`Error uploading to S3: ${err}`);
+      return false;
+    }
   }
 
   /**
@@ -92,6 +126,8 @@ export class S3Service {
    * @param bucket
    */
   async getFileURL(fileName: string, bucket: string) {
+    this.logger.verbose(`Get file url: ${fileName}`);
+
     const key = await this.getValidFilePath(fileName, bucket);
     const command = new GetObjectCommand({
       Bucket: bucket,

@@ -6,4 +6,5 @@ export * from './snapshot.create';
 export * from './snapshot.event';
 export * from './snapshot.type';
 export * from './snapshot.update';
+export * from './snapshot.upload';
 export * from './snapshots.response';
