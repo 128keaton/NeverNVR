@@ -300,6 +300,7 @@ export class ClipsService {
     dateStart?: Date,
     dateEnd?: Date,
     gatewayID?: string,
+    showAnalyzedOnly?: boolean,
   ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
@@ -354,6 +355,13 @@ export class ClipsService {
       where = {
         ...where,
         gatewayID,
+      };
+    }
+
+    if (!!showAnalyzedOnly) {
+      where = {
+        ...where,
+        analyzed: true,
       };
     }
 

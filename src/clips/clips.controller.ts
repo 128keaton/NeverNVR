@@ -74,6 +74,16 @@ export class ClipsController {
     example: new Date(),
     type: Date,
   })
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: Boolean,
+  })
   getClips(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -83,6 +93,9 @@ export class ClipsController {
     @Query('search') search?: string,
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
+    @Query('gatewayID') gatewayID?: string,
+    @Query('showAnalyzedOnly', new DefaultValuePipe(false))
+    showAnalyzedOnly?: boolean,
   ) {
     return this.clipsService.getClips(
       undefined,
@@ -93,6 +106,8 @@ export class ClipsController {
       sortDirection,
       dateStart,
       dateEnd,
+      gatewayID,
+      showAnalyzedOnly,
     );
   }
 
@@ -164,6 +179,11 @@ export class ClipsController {
     required: false,
     type: String,
   })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: Boolean,
+  })
   forCameraID(
     @Param('cameraID') cameraID: string,
     @Query('pageSize') pageSize = 40,
@@ -175,6 +195,8 @@ export class ClipsController {
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
+    @Query('showAnalyzedOnly', new DefaultValuePipe(false))
+    showAnalyzedOnly?: boolean,
   ) {
     return this.clipsService.getClips(
       cameraID,
@@ -186,6 +208,7 @@ export class ClipsController {
       dateStart,
       dateEnd,
       gatewayID,
+      showAnalyzedOnly,
     );
   }
 
