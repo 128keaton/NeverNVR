@@ -94,7 +94,7 @@ export class ClipsController {
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
-    @Query('showAnalyzedOnly', new DefaultValuePipe(false))
+    @Query('showAnalyzedOnly')
     showAnalyzedOnly?: boolean,
   ) {
     return this.clipsService.getClips(
@@ -195,7 +195,7 @@ export class ClipsController {
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
-    @Query('showAnalyzedOnly', new DefaultValuePipe(false))
+    @Query('showAnalyzedOnly')
     showAnalyzedOnly?: boolean,
   ) {
     return this.clipsService.getClips(
