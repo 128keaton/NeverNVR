@@ -366,43 +366,7 @@ export class ClipsService {
       };
     }
 
-    if (!!tags && tags.length) {
-      if (Array.isArray(tags)) {
-        if (tags.length === 1) {
-          where = {
-            ...where,
-            tags: {
-              has: tags[0],
-            },
-          };
-        } else {
-          where = {
-            ...where,
-            tags: {
-              hasSome: tags,
-            },
-          };
-        }
-      } else {
-        tags = (tags as string).split(',');
-
-        if (tags.length === 1) {
-          where = {
-            ...where,
-            tags: {
-              has: tags[0],
-            },
-          };
-        } else {
-          where = {
-            ...where,
-            tags: {
-              hasSome: tags,
-            },
-          };
-        }
-      }
-    }
+    where = AppHelpers.handleTagsFilter(tags, where);
 
     if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
     else orderBy['end'] = sortDirection || 'desc';

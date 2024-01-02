@@ -41,4 +41,46 @@ export class AppHelpers {
 
     return new Date(dateString);
   }
+
+  static handleTagsFilter(tags: string[] | string | undefined, where: any) {
+    if (!!tags && tags.length) {
+      if (Array.isArray(tags)) {
+        if (tags.length === 1) {
+          return {
+            ...where,
+            tags: {
+              has: tags[0],
+            },
+          };
+        } else {
+          return {
+            ...where,
+            tags: {
+              hasEvery: tags,
+            },
+          };
+        }
+      } else {
+        tags = (tags as string).split(',');
+
+        if (tags.length === 1) {
+          return {
+            ...where,
+            tags: {
+              has: tags[0],
+            },
+          };
+        } else {
+          return {
+            ...where,
+            tags: {
+              hasEvery: tags,
+            },
+          };
+        }
+      }
+    }
+
+    return where;
+  }
 }
