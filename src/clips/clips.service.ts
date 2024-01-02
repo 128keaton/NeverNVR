@@ -300,7 +300,7 @@ export class ClipsService {
     dateStart?: Date,
     dateEnd?: Date,
     gatewayID?: string,
-    showAnalyzedOnly?: boolean,
+    showAnalyzedOnly?: string,
   ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
@@ -358,8 +358,8 @@ export class ClipsService {
       };
     }
 
-    if (!!showAnalyzedOnly) {
-      this.logger.log('Showing analyzed only');
+    if (!!showAnalyzedOnly && showAnalyzedOnly === 'true') {
+      this.logger.log(`Showing analyzed only: ${showAnalyzedOnly}`);
       where = {
         ...where,
         analyzed: true,
