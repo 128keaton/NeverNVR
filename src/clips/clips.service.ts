@@ -291,11 +291,15 @@ export class ClipsService {
   }
 
   getClips(
+    cameraID?: string,
     pageSize?: number,
     pageNumber?: number,
     search?: string,
     sortBy?: string,
     sortDirection?: 'asc' | 'desc' | '',
+    dateStart?: Date,
+    dateEnd?: Date,
+    gatewayID?: string,
   ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
@@ -321,59 +325,35 @@ export class ClipsService {
       };
     }
 
-    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
-    else orderBy['end'] = sortDirection || 'desc';
-
-    return paginate<Clip, Prisma.ClipFindManyArgs>(
-      this.prismaService.clip,
-      {
-        where,
-        orderBy,
-        include: {
-          gateway: {
-            select: {
-              name: true,
-              id: true,
-            },
-          },
-          camera: {
-            select: {
-              name: true,
-              id: true,
-            },
-          },
-        },
-      },
-      {
-        page: pageNumber,
-        perPage: pageSize,
-      },
-    );
-  }
-
-  async getClipsByCameraID(
-    cameraID: string,
-    pageSize?: number,
-    pageNumber?: number,
-    search?: string,
-    sortBy?: string,
-    sortDirection?: 'asc' | 'desc' | '',
-  ) {
-    const paginate = createPaginator({ perPage: pageSize || 40 });
-
-    const orderBy: Prisma.ClipOrderByWithRelationInput = {};
-    let where: Prisma.ClipWhereInput = {
-      cameraID,
-    };
-
-    if (!!search) {
+    if (!!dateStart) {
       where = {
-        cameraID,
-        camera: {
-          name: {
-            contains: search,
-          },
+        ...where,
+        start: {
+          gte: dateStart,
         },
+      };
+
+      if (!!dateEnd) {
+        where = {
+          ...where,
+          end: {
+            lte: dateEnd,
+          },
+        };
+      }
+    }
+
+    if (!!cameraID) {
+      where = {
+        ...where,
+        cameraID,
+      };
+    }
+
+    if (!!gatewayID) {
+      where = {
+        ...where,
+        gatewayID,
       };
     }
 

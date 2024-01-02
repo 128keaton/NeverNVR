@@ -62,6 +62,18 @@ export class ClipsController {
     type: String,
     enum: ['asc', 'desc', ''],
   })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
   getClips(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -69,13 +81,18 @@ export class ClipsController {
     @Query('sortDirection', new DefaultValuePipe('desc'))
     sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
   ) {
     return this.clipsService.getClips(
+      undefined,
       pageSize,
       pageNumber,
       search,
       sortBy,
       sortDirection,
+      dateStart,
+      dateEnd,
     );
   }
 
@@ -130,6 +147,23 @@ export class ClipsController {
     type: String,
     enum: ['asc', 'desc', ''],
   })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
   forCameraID(
     @Param('cameraID') cameraID: string,
     @Query('pageSize') pageSize = 40,
@@ -138,14 +172,20 @@ export class ClipsController {
     @Query('sortDirection', new DefaultValuePipe('desc'))
     sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
+    @Query('gatewayID') gatewayID?: string,
   ) {
-    return this.clipsService.getClipsByCameraID(
+    return this.clipsService.getClips(
       cameraID,
       pageSize,
       pageNumber,
       search,
       sortBy,
       sortDirection,
+      dateStart,
+      dateEnd,
+      gatewayID,
     );
   }
 
