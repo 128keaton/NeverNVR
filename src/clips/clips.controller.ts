@@ -85,6 +85,12 @@ export class ClipsController {
     type: String,
     enum: ['true', 'false', ''],
   })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
   getClips(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -97,6 +103,7 @@ export class ClipsController {
     @Query('gatewayID') gatewayID?: string,
     @Query('showAnalyzedOnly')
     showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
   ) {
     return this.clipsService.getClips(
       undefined,
@@ -109,6 +116,7 @@ export class ClipsController {
       dateEnd,
       gatewayID,
       showAnalyzedOnly,
+      tags,
     );
   }
 
@@ -186,6 +194,12 @@ export class ClipsController {
     type: String,
     enum: ['true', 'false', ''],
   })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
   forCameraID(
     @Param('cameraID') cameraID: string,
     @Query('pageSize') pageSize = 40,
@@ -199,6 +213,7 @@ export class ClipsController {
     @Query('gatewayID') gatewayID?: string,
     @Query('showAnalyzedOnly')
     showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
   ) {
     return this.clipsService.getClips(
       cameraID,
@@ -211,6 +226,7 @@ export class ClipsController {
       dateEnd,
       gatewayID,
       showAnalyzedOnly,
+      tags,
     );
   }
 

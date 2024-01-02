@@ -112,6 +112,12 @@ export class SnapshotsController {
     type: String,
     enum: ['true', 'false', ''],
   })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
   get(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -123,6 +129,7 @@ export class SnapshotsController {
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
     @Query('showAnalyzedOnly') showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
   ) {
     return this.snapshotsService.getSnapshots(
       undefined,
@@ -135,6 +142,7 @@ export class SnapshotsController {
       dateEnd,
       gatewayID,
       showAnalyzedOnly,
+      tags,
     );
   }
 
@@ -209,6 +217,12 @@ export class SnapshotsController {
     type: String,
     enum: ['true', 'false', ''],
   })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
   forCameraID(
     @Param('cameraID') cameraID: string,
     @Query('pageSize') pageSize = 40,
@@ -221,6 +235,7 @@ export class SnapshotsController {
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
     @Query('showAnalyzedOnly') showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
   ) {
     return this.snapshotsService.getSnapshots(
       cameraID,
@@ -233,6 +248,7 @@ export class SnapshotsController {
       dateEnd,
       gatewayID,
       showAnalyzedOnly,
+      tags,
     );
   }
 
