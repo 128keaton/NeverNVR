@@ -120,7 +120,6 @@ export class ClipsGateway extends CommonGateway {
       gatewayID: string;
     },
   ) {
-    this.logger.verbose('Updated', request);
     return this.clipsService.update(request.id, request.clip);
   }
 }
