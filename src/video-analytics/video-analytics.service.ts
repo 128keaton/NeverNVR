@@ -15,7 +15,7 @@ export class VideoAnalyticsService {
   private readonly apiURL: string;
   private readonly apiToken: string;
 
-  get headers() {
+  getHeaders() {
     return {
       Authorization: `Bearer ${this.apiToken}`,
     };
@@ -76,7 +76,7 @@ export class VideoAnalyticsService {
           videos: [videoClipPath],
         },
         {
-          headers: this.headers,
+          headers: this.getHeaders(),
         },
       )
       .pipe(
@@ -104,7 +104,7 @@ export class VideoAnalyticsService {
           videos: [],
         },
         {
-          headers: this.headers,
+          headers: this.getHeaders(),
         },
       )
       .pipe(
@@ -122,7 +122,7 @@ export class VideoAnalyticsService {
     const url = `${this.apiURL}/${jobID}/${fileName}`;
     return this.httpService
       .get<ClassificationResponse>(url, {
-        headers: this.headers,
+        headers: this.getHeaders(),
       })
       .pipe(
         map((response) => response.data),
@@ -138,7 +138,7 @@ export class VideoAnalyticsService {
     const url = `${this.apiURL}/${jobID}`;
     return this.httpService
       .get<JobResponse>(url, {
-        headers: this.headers,
+        headers: this.getHeaders(),
       })
       .pipe(
         map((response) => response.data),
