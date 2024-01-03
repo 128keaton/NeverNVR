@@ -18,7 +18,7 @@ export class ClipsQueue {
     await this.gatewayEventsService.handleClip(
       job.data.eventType,
       job.data.clip.id,
-      job.data.clip,
+      { clip: job.data.clip },
     );
 
     return this.clipsGateway.handleClipEvent(job.data);

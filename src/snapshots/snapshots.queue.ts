@@ -14,7 +14,7 @@ export class SnapshotsQueue {
   ) {}
 
   @Process('outgoing')
-  async processCamera(job: Job<SnapshotEvent>) {
+  async processSnapshot(job: Job<SnapshotEvent>) {
     const snapshot = {
       ...job.data.create,
       ...job.data.snapshot,
@@ -24,7 +24,7 @@ export class SnapshotsQueue {
     await this.gatewayEventsService.handleSnapshot(
       job.data.eventType,
       job.data.snapshot.id,
-      snapshot,
+      { snapshot, cameraID: snapshot.cameraID },
     );
 
     return this.snapshotsGateway.handleSnapshotEvent(job.data);

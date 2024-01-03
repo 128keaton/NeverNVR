@@ -22,7 +22,7 @@ export class CamerasQueue {
     await this.gatewayEventsService.handleCamera(
       job.data.eventType,
       job.data.camera.id,
-      camera,
+      { camera },
     );
 
     return this.camerasGateway.handleCameraEvent(job.data);
