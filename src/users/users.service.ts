@@ -110,6 +110,16 @@ export class UsersService {
     return user;
   }
 
+  findOneByID(id: string) {
+    if (!id) return undefined;
+
+    return this.prismaService.extended.user.findFirst({
+      where: {
+        id,
+      },
+    });
+  }
+
   update(
     id: string,
     update: {
@@ -272,5 +282,14 @@ export class UsersService {
       },
       { page: request.pageNumber },
     );
+  }
+
+  async delete(id: string) {
+    const deleted = await this.prismaService.extended.user.delete({
+      where: {
+        id,
+      },
+    });
+    return { deleted: deleted, id };
   }
 }
