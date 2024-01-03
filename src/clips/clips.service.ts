@@ -51,7 +51,12 @@ export class ClipsService {
         );
 
         if (job.stalled) {
-          await this.update(clip.id, { analyzing: false });
+          await this.update(
+            clip.id,
+            { analyzing: false },
+            clip.cameraID,
+            clip.gatewayID,
+          );
         } else if (job.files_processed.includes(clip.fileName)) {
           this.videoAnalyticsService.handleJobFileProcessed(clip.fileName, job);
         }
@@ -247,7 +252,39 @@ export class ClipsService {
       primaryTag?: string;
       tags?: string[];
     },
+    cameraID?: string,
+    gatewayID?: string,
   ) {
+    const existingClip = await this.prismaService.clip.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (!existingClip)
+      return this.create(
+        {
+          gatewayID,
+          id,
+          duration: clip.duration,
+          fileName: clip.fileName,
+          fileSize: clip.fileSize,
+          width: clip.width,
+          height: clip.height,
+          format: clip.format,
+          start: clip.start,
+          end: clip.end,
+          availableLocally: clip.availableLocally,
+          availableCloud: clip.availableCloud,
+          analyticsJobID: clip.analyticsJobID,
+          analyzedFileName: clip.analyzedFileName,
+          analyzed: clip.analyzed,
+          primaryTag: clip.primaryTag,
+          tags: clip.tags,
+        },
+        cameraID,
+      );
+
     const updatedClip = await this.prismaService.clip.update({
       where: {
         id,

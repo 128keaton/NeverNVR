@@ -33,21 +33,31 @@ export class ClipsQueue {
     if (!clip) return;
 
     if (job.data.tags.length > 0) {
-      return this.clipsService.update(clip.id, {
-        analyzed: job.data.analyzed,
-        analyzedFileName: job.data.analyzedFileName,
-        tags: job.data.tags,
-        primaryTag: job.data.primaryTag,
-        analyzing: false,
-        analyzeEnd: new Date(),
-      });
+      return this.clipsService.update(
+        clip.id,
+        {
+          analyzed: job.data.analyzed,
+          analyzedFileName: job.data.analyzedFileName,
+          tags: job.data.tags,
+          primaryTag: job.data.primaryTag,
+          analyzing: false,
+          analyzeEnd: new Date(),
+        },
+        clip.cameraID,
+        clip.gatewayID,
+      );
     }
 
-    return this.clipsService.update(clip.id, {
-      analyzed: job.data.analyzed,
-      analyzing: false,
-      analyzeEnd: new Date(),
-    });
+    return this.clipsService.update(
+      clip.id,
+      {
+        analyzed: job.data.analyzed,
+        analyzing: false,
+        analyzeEnd: new Date(),
+      },
+      clip.cameraID,
+      clip.gatewayID,
+    );
   }
 
   @Process('started-analyze')
@@ -55,9 +65,14 @@ export class ClipsQueue {
     const clip = await this.clipsService.getByAnalyticsJobID(job.data);
     if (!clip) return;
 
-    return this.clipsService.update(clip.id, {
-      analyzing: true,
-      analyzeStart: new Date(),
-    });
+    return this.clipsService.update(
+      clip.id,
+      {
+        analyzing: true,
+        analyzeStart: new Date(),
+      },
+      clip.cameraID,
+      clip.gatewayID,
+    );
   }
 }

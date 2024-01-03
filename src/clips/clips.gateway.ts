@@ -77,7 +77,12 @@ export class ClipsGateway extends CommonGateway {
       cameraID?: string;
     },
   ) {
-    return this.clipsService.update(payload.id, payload.clip);
+    return this.clipsService.update(
+      payload.id,
+      payload.clip,
+      payload.cameraID,
+      payload.gatewayID,
+    );
   }
 
   @Subscribe('never_gateway/clip/+/deleted')
