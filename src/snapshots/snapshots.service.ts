@@ -109,6 +109,8 @@ export class SnapshotsService {
         HttpStatusCode.NotFound,
       );
 
+    this.logger.verbose('Creating analytics job for snapshot');
+
     const analyticsJobID = await lastValueFrom(
       this.videoAnalyticsService.classifyImage(
         file.originalname,
@@ -155,13 +157,6 @@ export class SnapshotsService {
     });
 
     if (!snapshot) return snapshot;
-
-    await this.snapshotsQueue.add('outgoing', {
-      eventType: 'created',
-      snapshot,
-      create: upload,
-      cameraID: camera.id,
-    });
 
     this._snapshotEvents.next({
       create: upload,
