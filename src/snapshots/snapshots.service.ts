@@ -64,7 +64,10 @@ export class SnapshotsService {
   }
 
   async uploadAndCreate(upload: SnapshotUpload, file: Express.Multer.File) {
-    this.logger.log(`Uploading ${file.originalname} to S3`);
+    if (!file)
+      throw new HttpException('Invalid request', HttpStatusCode.BadRequest);
+
+    this.logger.log(`Uploading ${JSON.stringify(file)} to S3`);
 
     const camera = await this.prismaService.camera.findFirst({
       where: {
