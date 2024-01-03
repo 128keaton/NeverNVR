@@ -31,7 +31,7 @@ export class SnapshotsGateway extends CommonGateway {
   }
 
   handleSnapshotEvent(event: SnapshotEvent, emitLocal = true) {
-    const client = this.getGatewayClient(event.snapshot.gatewayID);
+    const clients = this.getGatewayClients(event.snapshot.gatewayID);
     const snapshot = {
       ...event.snapshot,
       ...event.update,
@@ -40,15 +40,17 @@ export class SnapshotsGateway extends CommonGateway {
 
     delete snapshot.gatewayID;
 
-    if (emitLocal && !!client) {
-      const didEmit = client.emit(event.eventType, {
-        id: event.snapshot.id,
-        snapshot,
-        cameraID: event.cameraID,
-      });
+    clients.forEach((client) => {
+      if (emitLocal && !!client) {
+        const didEmit = client.emit(event.eventType, {
+          id: event.snapshot.id,
+          snapshot,
+          cameraID: event.cameraID,
+        });
 
-      if (!didEmit) this.logger.warn('Could not emit');
-    }
+        if (!didEmit) this.logger.warn('Could not emit');
+      }
+    });
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
