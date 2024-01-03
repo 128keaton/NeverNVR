@@ -29,6 +29,11 @@ export class UsersController {
     return this.usersService.getUsers({ pageSize, pageNumber, search });
   }
 
+  @Get(':userID')
+  user(@Param('userID') id: string) {
+    return this.usersService.findOneByID(id);
+  }
+
   @Patch(':userID')
   update(@Param('userID') id: string, @Body() request: UpdateUserRequest) {
     return this.usersService.update(id, request);
