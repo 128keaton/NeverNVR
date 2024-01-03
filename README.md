@@ -21,6 +21,9 @@ AWS_SECRET_ACCESS_KEY=0asdasdasdasd
 AWS_REGION=us-east-2
 PORT=3123
 NODE_ENV=development
+MQTT_NEVER_URL=mqtt://127.0.0.1:1883
+MQTT_NEVER_USERNAME=tibbo
+MQTT_NEVER_PASSWORD=tibbo123
 ```
 
 ### Commands

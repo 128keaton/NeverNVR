@@ -1,15 +1,10 @@
-import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
-import { Socket } from 'socket.io';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Camera, CameraEvent, CameraUpdate } from './types';
 import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { CamerasService } from './cameras.service';
 import { CommonGateway } from '../common/common-gateway';
+import { Payload, Subscribe } from '@vipstorage/nest-mqtt';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -24,23 +19,17 @@ export class CamerasGateway extends CommonGateway {
   ) {
     super(gatewaysService);
     this.logger.verbose('Cameras gateway active');
+    this.camerasService.cameraEvents.subscribe((event) => {
+      return this.handleCameraEvent(event);
+    });
   }
 
-  handleCameraEvent(event: CameraEvent) {
-    const client = this.getGatewayClient(event.camera.gatewayID);
-
+  async handleCameraEvent(event: CameraEvent) {
     const camera = {
       ...event.camera,
       ...event.update,
       ...event.create,
     };
-
-    delete camera.gatewayID;
-
-    const didEmit = client.emit(event.eventType, {
-      id: event.camera.id,
-      camera,
-    });
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
@@ -52,56 +41,51 @@ export class CamerasGateway extends CommonGateway {
         camera,
       });
     });
-
-    if (!didEmit) this.logger.warn('Could not emit');
-
-    return didEmit;
   }
 
-  @SubscribeMessage('response')
-  handleResponse(
-    @MessageBody() response: { type: string; data?: any },
-    @ConnectedSocket() client: Socket,
+  @Subscribe('never_gateway/camera/+/created')
+  handleCreated(
+    @Payload()
+    payload: {
+      id: string;
+      camera: Camera;
+      gatewayID?: string;
+    },
   ) {
-    switch (response.type) {
-      case 'identify':
-        this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
-        );
-        this.associateGatewayID(client.id, response.data.gatewayID).then();
-        break;
-      default:
-        this.logger.verbose(
-          `Client with ID ${client.id} returned unknown response ${
-            response.type
-          } with data ${response.data || 'none'}`,
-        );
-        break;
-    }
+    return this.camerasService.create(payload.camera, false);
   }
 
-  @SubscribeMessage('created')
-  handleCreated(@MessageBody() request: { camera: Camera; id: string }) {
-    return this.camerasService.create(request.camera, false);
+  @Subscribe('never_gateway/camera/+/deleted')
+  handleDeleted(
+    @Payload()
+    payload: {
+      id: string;
+      camera: Camera;
+      gatewayID?: string;
+    },
+  ) {
+    return this.camerasService.delete(payload.id, false);
   }
 
-  @SubscribeMessage('deleted')
-  handleDeleted(@MessageBody() request: { camera: Camera; id: string }) {
-    return this.camerasService.delete(request.id, false);
-  }
-
-  @SubscribeMessage('updated')
-  handleUpdated(@MessageBody() request: { camera: CameraUpdate; id: string }) {
+  @Subscribe('never_gateway/camera/+/updated')
+  handleUpdated(
+    @Payload()
+    payload: {
+      id: string;
+      camera: CameraUpdate;
+      gatewayID?: string;
+    },
+  ) {
     return this.camerasService.update(
-      request.id,
+      payload.id,
       {
-        stream: request.camera.stream,
-        record: request.camera.record,
-        name: request.camera.name,
-        status: request.camera.status,
-        timezone: request.camera.timezone,
-        synchronized: request.camera.synchronized,
-        lastConnection: request.camera.lastConnection,
+        stream: payload.camera.stream,
+        record: payload.camera.record,
+        name: payload.camera.name,
+        status: payload.camera.status,
+        timezone: payload.camera.timezone,
+        synchronized: payload.camera.synchronized,
+        lastConnection: payload.camera.lastConnection,
       },
       false,
     );

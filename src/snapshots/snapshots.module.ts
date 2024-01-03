@@ -7,6 +7,8 @@ import { GatewaysModule } from '../gateways/gateways.module';
 import { SnapshotsQueue } from './snapshots.queue';
 import { BullModule } from '@nestjs/bull';
 import { S3Module } from '../services/s3/s3.module';
+import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
+import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
 
 @Module({
   providers: [SnapshotsService, SnapshotsGateway, SnapshotsQueue],
@@ -14,8 +16,10 @@ import { S3Module } from '../services/s3/s3.module';
   exports: [SnapshotsGateway],
   imports: [
     S3Module,
+    VideoAnalyticsModule,
     PrismaModule,
     GatewaysModule,
+    GatewayEventsModule,
     BullModule.registerQueue({
       name: 'snapshots',
     }),

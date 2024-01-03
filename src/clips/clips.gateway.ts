@@ -1,15 +1,10 @@
-import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { CommonGateway } from '../common/common-gateway';
-import { Socket } from 'socket.io';
 import { ClipsService } from './clips.service';
-import { Clip, ClipEvent } from './type';
+import { ClipEvent } from './type';
+import { Payload, Subscribe } from '@vipstorage/nest-mqtt';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -24,22 +19,16 @@ export class ClipsGateway extends CommonGateway {
   ) {
     super(gatewaysService);
     this.logger.verbose('Clips gateway active');
+
+    this.clipsService.clipEvents.subscribe((event) => {
+      this.handleClipEvent(event);
+    });
   }
 
   handleClipEvent(event: ClipEvent) {
-    const client = this.getGatewayClient(event.clip.gatewayID);
-
     const clip = {
       ...event.clip,
     };
-
-    delete clip.gatewayID;
-
-    const didEmit = client.emit(event.eventType, {
-      id: event.clip.id,
-      clip,
-      cameraName: event.cameraName,
-    });
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
@@ -49,69 +38,64 @@ export class ClipsGateway extends CommonGateway {
       client.emit(event.eventType, {
         id: event.clip.id,
         clip,
-        cameraName: event.cameraName,
+        cameraID: event.cameraID,
       });
     });
-
-    if (!didEmit) this.logger.warn('Could not emit');
-
-    return didEmit;
   }
 
-  @SubscribeMessage('response')
-  handleResponse(
-    @MessageBody() response: { type: string; data?: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    switch (response.type) {
-      case 'identify':
-        this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
-        );
-        this.associateGatewayID(client.id, response.data.gatewayID).then();
-        break;
-      default:
-        this.logger.verbose(
-          `Client with ID ${client.id} returned unknown response ${
-            response.type
-          } with data ${response.data || 'none'}`,
-        );
-        break;
-    }
-  }
-
-  @SubscribeMessage('created')
+  @Subscribe('never_gateway/clip/+/created')
   handleCreated(
-    @MessageBody()
-    request: {
-      clip: Clip;
+    @Payload()
+    payload: {
       id: string;
-      cameraName: string;
-      gatewayID: string;
+      clip: any;
+      gatewayID?: string;
+      cameraID?: string;
     },
   ) {
+    if (!payload.gatewayID) return;
+
+    this.logger.verbose(`Creating new clip from ${payload.gatewayID}`);
     return this.clipsService.create(
       {
-        ...request.clip,
-        id: request.id,
-        gatewayID: request.gatewayID,
+        ...payload.clip,
+        id: payload.id,
+        gatewayID: payload.gatewayID,
       },
-      request.cameraName,
+      payload.cameraID,
       false,
     );
   }
 
-  @SubscribeMessage('updated')
+  @Subscribe('never_gateway/clip/+/updated')
   handleUpdated(
-    @MessageBody()
-    request: {
-      clip: Clip;
+    @Payload()
+    payload: {
       id: string;
-      cameraName: string;
-      gatewayID: string;
+      clip: any;
+      gatewayID?: string;
+      cameraID?: string;
     },
   ) {
-    this.logger.verbose('Updated', request);
-    return this.clipsService.update(request.id, request.clip);
+    return this.clipsService.update(
+      payload.id,
+      payload.clip,
+      payload.cameraID,
+      payload.gatewayID,
+      false,
+    );
+  }
+
+  @Subscribe('never_gateway/clip/+/deleted')
+  handleDeleted(
+    @Payload()
+    payload: {
+      id: string;
+      clip: any;
+      gatewayID?: string;
+      cameraID?: string;
+    },
+  ) {
+    return this.clipsService.delete(payload.id, false);
   }
 }

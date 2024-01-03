@@ -53,7 +53,7 @@ export class GatewaysController {
   })
   @ApiOperation({ summary: 'Get a gateways stats' })
   getStats(@Param('id') id: string) {
-    return this.gatewaysService.getStats(id);
+    return this.gatewaysService.getGatewayStats(id);
   }
 
   @Get(':id/diskSpace')

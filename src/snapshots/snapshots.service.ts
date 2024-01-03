@@ -1,6 +1,11 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import { SnapshotCreate, SnapshotEvent } from './types';
+import {
+  SnapshotCreate,
+  SnapshotEvent,
+  SnapshotUpdate,
+  SnapshotUpload,
+} from './types';
 import { HttpStatusCode } from 'axios';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -8,21 +13,170 @@ import { createPaginator } from 'prisma-pagination';
 import { Prisma, Snapshot } from '@prisma/client';
 import { S3Service } from '../services/s3/s3.service';
 import { AppHelpers } from '../app.helpers';
+import { lastValueFrom, Subject } from 'rxjs';
+import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SnapshotsService {
+  private _snapshotEvents = new Subject<SnapshotEvent>();
   private logger = new Logger(SnapshotsService.name);
+
+  get snapshotEvents() {
+    return this._snapshotEvents.asObservable();
+  }
 
   constructor(
     private prismaService: PrismaService,
     private s3Service: S3Service,
+    private videoAnalyticsService: VideoAnalyticsService,
     @InjectQueue('snapshots') private snapshotsQueue: Queue<SnapshotEvent>,
   ) {}
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async updateAnalyzingSnapshots() {
+    const snapshots = await this.prismaService.snapshot.findMany({
+      where: {
+        analyzing: true,
+      },
+    });
+
+    for (const snapshot of snapshots) {
+      const now = new Date();
+      const FIVE_MIN = 5 * 60 * 1000;
+
+      if (!snapshot.analyzeStart) {
+        await this.update(snapshot.id, { analyzeStart: new Date() });
+      } else if (
+        now.getDate() - new Date(snapshot.analyzeStart).getDate() > FIVE_MIN &&
+        !!snapshot.analyticsJobID
+      ) {
+        const job = await lastValueFrom(
+          this.videoAnalyticsService.checkJobStatus(snapshot.analyticsJobID),
+        );
+
+        if (job.stalled) {
+          await this.update(snapshot.id, { analyzing: false });
+        } else if (job.files_processed.includes(snapshot.fileName)) {
+          this.videoAnalyticsService.handleJobFileProcessed(
+            snapshot.fileName,
+            job,
+          );
+        }
+      }
+    }
+  }
+
+  async uploadAndCreate(upload: SnapshotUpload, file: Express.Multer.File) {
+    if (!file)
+      throw new HttpException('Invalid request', HttpStatusCode.BadRequest);
+
+    this.logger.verbose(`Uploading ${file.originalname} to S3`);
+    this.logger.debug(`Upload parameters: ${JSON.stringify(upload)}`);
+
+    const camera = await this.prismaService.camera.findFirst({
+      where: {
+        id: upload.cameraID,
+      },
+      select: {
+        timezone: true,
+        deleteSnapshotAfter: true,
+        id: true,
+        name: true,
+      },
+    });
+
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id: upload.gatewayID,
+      },
+      select: {
+        s3Bucket: true,
+      },
+    });
+
+    if (!camera)
+      throw new HttpException('Could not find camera', HttpStatusCode.NotFound);
+
+    const baseDirectory = upload.timestamp.split('T')[0];
+    const cloudFileName = `${baseDirectory}/${camera.id}/snapshots/${file.originalname}`;
+
+    const availableCloud = await this.s3Service.uploadFile(
+      cloudFileName,
+      gateway.s3Bucket,
+      file,
+    );
+
+    if (!availableCloud)
+      throw new HttpException(
+        'Could not upload to S3',
+        HttpStatusCode.NotFound,
+      );
+
+    this.logger.verbose('Creating analytics job for snapshot');
+
+    const analyticsJobID = await lastValueFrom(
+      this.videoAnalyticsService.classifyImage(
+        file.originalname,
+        camera.id,
+        gateway.s3Bucket,
+      ),
+    );
+
+    const snapshot = await this.prismaService.snapshot.create({
+      data: {
+        id: uuidv4(),
+        availableCloud,
+        availableLocally: false,
+        timezone: upload.timezone || camera.timezone,
+        fileName: file.originalname,
+        fileSize: parseInt(upload.fileSize),
+        width: parseInt(upload.width),
+        height: parseInt(upload.height),
+        timestamp: new Date(upload.timestamp),
+        analyticsJobID,
+        gateway: {
+          connect: {
+            id: upload.gatewayID,
+          },
+        },
+        camera: {
+          connect: {
+            id: camera.id,
+          },
+        },
+      },
+      include: {
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+        gateway: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!snapshot) return snapshot;
+
+    this._snapshotEvents.next({
+      create: upload,
+      snapshot,
+      eventType: 'created',
+      cameraID: camera.id,
+    });
+
+    return snapshot;
+  }
 
   async create(create: SnapshotCreate, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
-        name: create.cameraName,
+        id: create.cameraID,
       },
       select: {
         timezone: true,
@@ -35,6 +189,26 @@ export class SnapshotsService {
     if (!camera)
       throw new HttpException('Could not find camera', HttpStatusCode.NotFound);
 
+    let analyticsJobID: string | undefined;
+    if (create.availableCloud) {
+      const gateway = await this.prismaService.gateway.findFirst({
+        where: {
+          id: create.gatewayID,
+        },
+        select: {
+          s3Bucket: true,
+        },
+      });
+
+      analyticsJobID = await lastValueFrom(
+        this.videoAnalyticsService.classifyImage(
+          create.fileName,
+          camera.id,
+          gateway.s3Bucket,
+        ),
+      );
+    }
+
     const snapshot = await this.prismaService.snapshot.create({
       data: {
         id: create.id,
@@ -44,6 +218,7 @@ export class SnapshotsService {
         width: create.width,
         height: create.height,
         timestamp: create.timestamp,
+        analyticsJobID,
         gateway: {
           connect: {
             id: create.gatewayID,
@@ -52,6 +227,18 @@ export class SnapshotsService {
         camera: {
           connect: {
             id: camera.id,
+          },
+        },
+      },
+      include: {
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+        gateway: {
+          select: {
+            name: true,
           },
         },
       },
@@ -64,15 +251,35 @@ export class SnapshotsService {
         eventType: 'created',
         snapshot,
         create,
-        cameraName: camera.name,
+        cameraID: camera.id,
       });
+
+    this._snapshotEvents.next({
+      create,
+      snapshot,
+      eventType: 'created',
+      cameraID: camera.id,
+    });
 
     return snapshot;
   }
 
-  getSnapshots(pageSize?: number, pageNumber?: number, search?: string) {
+  getSnapshots(
+    cameraID?: string,
+    pageSize?: number,
+    pageNumber?: number,
+    search?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc' | '',
+    dateStart?: Date,
+    dateEnd?: Date,
+    gatewayID?: string,
+    showAnalyzedOnly?: string,
+    tags?: string[] | string,
+  ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
+    const orderBy = {};
     let where: any = {};
 
     if (!!search) {
@@ -85,13 +292,64 @@ export class SnapshotsService {
       };
     }
 
+    if (!!cameraID) {
+      where = {
+        ...where,
+        cameraID,
+      };
+    }
+
+    if (!!gatewayID) {
+      where = {
+        ...where,
+        gatewayID,
+      };
+    }
+
+    if (showAnalyzedOnly === 'true') {
+      where = {
+        ...where,
+        analyzed: true,
+      };
+    }
+
+    if (!!dateStart && !dateEnd) {
+      where = {
+        ...where,
+        timestamp: {
+          gte: dateStart,
+        },
+      };
+    }
+
+    if (!!dateStart && !!dateEnd) {
+      where = {
+        ...where,
+        AND: [
+          {
+            timestamp: {
+              gte: dateStart,
+            },
+          },
+          {
+            timestamp: {
+              lte: dateEnd,
+            },
+          },
+        ],
+      };
+    }
+
+    where = AppHelpers.handleTagsFilter(tags, where);
+
+    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
+    else orderBy['timestamp'] = sortDirection || 'desc';
+
     return paginate<Snapshot, Prisma.SnapshotFindManyArgs>(
       this.prismaService.snapshot,
       {
         where,
-        orderBy: {
-          timestamp: 'desc',
-        },
+        orderBy,
         include: {
           gateway: {
             select: {
@@ -114,44 +372,41 @@ export class SnapshotsService {
     );
   }
 
-  async getSnapshotsByCameraID(cameraID: string) {
-    const snapshots = await this.prismaService.snapshot.findMany({
-      where: {
-        cameraID,
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-      select: {
-        fileName: true,
-        id: true,
-        timezone: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        timestamp: true,
-        availableLocally: true,
-        availableCloud: true,
-        cameraID: true,
-        camera: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-    return {
-      total: snapshots.length,
-      data: snapshots,
-    };
-  }
-
   async update(id: string, data: any, emitLocal = true) {
     const snapshot = await this.prismaService.snapshot.update({
       where: {
         id,
       },
-      data,
+      data: {
+        analyticsJobID: data.analyticsJobID,
+        timezone: data.timezone,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
+        width: data.width,
+        height: data.height,
+        timestamp: data.timestamp,
+        availableCloud: data.availableCloud,
+        availableLocally: data.availableLocally,
+        analyzed: data.analyzed,
+        analyzedFileName: data.analyzedFileName,
+        primaryTag: data.primaryTag,
+        tags: data.tags,
+        analyzing: data.analyzing,
+        analyzeStart: data.analyzeStart,
+        analyzeEnd: data.analyzeEnd,
+      },
+      include: {
+        camera: {
+          select: {
+            name: true,
+          },
+        },
+        gateway: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (emitLocal)
@@ -159,6 +414,12 @@ export class SnapshotsService {
         eventType: 'updated',
         snapshot,
       });
+
+    this._snapshotEvents.next({
+      snapshot,
+      eventType: 'updated',
+      cameraID: snapshot.cameraID,
+    });
 
     return snapshot;
   }
@@ -207,7 +468,7 @@ export class SnapshotsService {
     // Delete from S3
     const fileKey = AppHelpers.getFileKey(
       deleted.fileName,
-      deleted.camera.name,
+      deleted.cameraID,
       '.jpeg',
     );
 
@@ -217,29 +478,33 @@ export class SnapshotsService {
       await this.snapshotsQueue.add('outgoing', {
         eventType: 'deleted',
         snapshot: deleted,
-        cameraName: deleted.camera.name,
+        cameraID: deleted.cameraID,
       });
+
+    this._snapshotEvents.next({
+      snapshot: deleted,
+      eventType: 'deleted',
+      cameraID: deleted.cameraID,
+    });
 
     return deleted;
   }
 
-  async getSnapshotDownloadURL(id: string) {
+  async getSnapshotDownloadURL(id: string, analyzed = false) {
     const snapshot = await this.prismaService.snapshot.findFirst({
       where: {
         id,
       },
       select: {
+        timestamp: true,
         fileName: true,
         availableCloud: true,
         availableLocally: true,
+        analyzedFileName: true,
+        cameraID: true,
         gateway: {
           select: {
             s3Bucket: true,
-          },
-        },
-        camera: {
-          select: {
-            name: true,
           },
         },
       },
@@ -254,12 +519,31 @@ export class SnapshotsService {
     if (!snapshot.availableCloud)
       throw new HttpException('Snapshot not uploaded', HttpStatusCode.NotFound);
 
+    if (!snapshot.analyzedFileName && analyzed === true)
+      throw new HttpException(
+        'Snapshot has not been analyzed',
+        HttpStatusCode.NotFound,
+      );
+
     const fileKey = AppHelpers.getFileKey(
-      snapshot.fileName,
-      snapshot.camera.name,
+      analyzed ? snapshot.analyzedFileName : snapshot.fileName,
+      snapshot.cameraID,
       '.jpeg',
     );
-    return this.s3Service.getFileURL(fileKey, snapshot.gateway.s3Bucket);
+
+    return this.s3Service
+      .getFileURL(fileKey, snapshot.gateway.s3Bucket)
+      .catch(() => {
+        // Fetch using snapshot timestamp instead of parsed filename timestamp
+        const timestamp = snapshot.timestamp || new Date();
+        const baseDirectory = timestamp.toISOString().split('T')[0];
+        const cloudFileName = `${baseDirectory}/${snapshot.cameraID}/${snapshot.fileName}`;
+
+        return this.s3Service.getFileURL(
+          cloudFileName,
+          snapshot.gateway.s3Bucket,
+        );
+      });
   }
 
   async getSnapshotImage(id: string) {
@@ -277,11 +561,6 @@ export class SnapshotsService {
               s3Bucket: true,
             },
           },
-          camera: {
-            select: {
-              name: true,
-            },
-          },
         },
       })
       .catch((err) => {
@@ -297,10 +576,18 @@ export class SnapshotsService {
 
     const fileKey = AppHelpers.getFileKey(
       snapshot.fileName,
-      snapshot.camera.name,
+      snapshot.cameraID,
       '.jpeg',
     );
 
     return this.s3Service.getFile(fileKey, snapshot.gateway.s3Bucket);
+  }
+
+  getByAnalyticsJobID(analyticsJobID: string) {
+    return this.prismaService.snapshot.findFirst({
+      where: {
+        analyticsJobID,
+      },
+    });
   }
 }

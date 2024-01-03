@@ -132,6 +132,15 @@ model Snapshot {
 
   // Is the clip available on local storage
   availableLocally Boolean @default(true)
+
+  analyticsJobID   String?
+  analyzedFileName String?
+  analyzed         Boolean   @default(false)
+  analyzing        Boolean   @default(false)
+  analyzeStart     DateTime?
+  analyzeEnd       DateTime?
+  primaryTag       String?
+  tags             String[]  @default([])
 }
 
 model Clip {
@@ -178,6 +187,15 @@ model Clip {
 
   // Is the clip available on local storage
   availableLocally Boolean @default(true)
+
+  analyticsJobID   String?
+  analyzedFileName String?
+  analyzed         Boolean   @default(false)
+  analyzing        Boolean   @default(false)
+  analyzeStart     DateTime?
+  analyzeEnd       DateTime?
+  primaryTag       String?
+  tags             String[]  @default([])
 }
 
 model User {

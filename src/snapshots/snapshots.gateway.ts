@@ -1,15 +1,10 @@
-import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { SnapshotsService } from './snapshots.service';
 import { CommonGateway } from '../common/common-gateway';
-import { Socket } from 'socket.io';
-import { Snapshot, SnapshotEvent } from './types';
+import { SnapshotCreate, SnapshotEvent, SnapshotUpdate } from './types';
+import { Payload, Subscribe } from '@vipstorage/nest-mqtt';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -24,10 +19,13 @@ export class SnapshotsGateway extends CommonGateway {
   ) {
     super(gatewaysService);
     this.logger.verbose('Snapshots gateway active');
+
+    this.snapshotsService.snapshotEvents.subscribe((event) => {
+      this.handleSnapshotEvent(event);
+    });
   }
 
   handleSnapshotEvent(event: SnapshotEvent) {
-    const client = this.getGatewayClient(event.snapshot.gatewayID);
     const snapshot = {
       ...event.snapshot,
       ...event.update,
@@ -35,12 +33,6 @@ export class SnapshotsGateway extends CommonGateway {
     };
 
     delete snapshot.gatewayID;
-
-    const didEmit = client.emit(event.eventType, {
-      id: event.snapshot.id,
-      snapshot,
-      cameraName: event.cameraName,
-    });
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
@@ -50,77 +42,53 @@ export class SnapshotsGateway extends CommonGateway {
       client.emit(event.eventType, {
         id: event.snapshot.id,
         snapshot,
-        cameraName: event.cameraName,
+        cameraID: event.cameraID,
       });
     });
-
-    if (!didEmit) this.logger.warn('Could not emit');
-
-    return didEmit;
   }
 
-  @SubscribeMessage('response')
-  handleResponse(
-    @MessageBody() response: { type: string; data?: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    switch (response.type) {
-      case 'identify':
-        this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
-        );
-        this.associateGatewayID(client.id, response.data.gatewayID).then();
-        break;
-      default:
-        this.logger.verbose(
-          `Client with ID ${client.id} returned unknown response ${
-            response.type
-          } with data ${response.data || 'none'}`,
-        );
-        break;
-    }
-  }
-
-  @SubscribeMessage('created')
+  @Subscribe('never_gateway/snapshot/+/created')
   handleCreated(
-    @MessageBody()
-    request: {
-      snapshot: Snapshot;
+    @Payload()
+    payload: {
       id: string;
-      cameraName: string;
-      gatewayID: string;
+      snapshot: SnapshotCreate;
+      gatewayID?: string;
+      cameraID?: string;
     },
   ) {
     return this.snapshotsService.create(
       {
-        ...request.snapshot,
-        id: request.id,
-        cameraName: request.cameraName,
-        gatewayID: request.gatewayID,
+        ...payload.snapshot,
+        id: payload.id,
+        cameraID: payload.cameraID,
+        gatewayID: payload.gatewayID,
       },
       false,
     );
   }
 
-  @SubscribeMessage('deleted')
+  @Subscribe('never_gateway/snapshot/+/deleted')
   handleDeleted(
-    @MessageBody()
-    request: {
-      deleted: Snapshot;
+    @Payload()
+    payload: {
       id: string;
+      deleted: SnapshotCreate;
+      gatewayID?: string;
     },
   ) {
-    return this.snapshotsService.delete(request.id, false);
+    return this.snapshotsService.delete(payload.id, false);
   }
 
-  @SubscribeMessage('updated')
+  @Subscribe('never_gateway/snapshot/+/updated')
   handleUpdated(
-    @MessageBody()
-    request: {
-      snapshot: Snapshot;
+    @Payload()
+    payload: {
       id: string;
+      snapshot: SnapshotUpdate;
+      gatewayID?: string;
     },
   ) {
-    return this.snapshotsService.update(request.id, request.snapshot, false);
+    return this.snapshotsService.update(payload.id, payload.snapshot, false);
   }
 }

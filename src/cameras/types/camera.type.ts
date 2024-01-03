@@ -47,11 +47,6 @@ export class Camera {
   snapshotInterval?: number;
 
   @ApiProperty({
-    example: 5123,
-  })
-  rtpPort: number;
-
-  @ApiProperty({
     example: '10.1.5.70',
   })
   ipAddress: string;
