@@ -1,6 +1,11 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import { SnapshotCreate, SnapshotEvent, SnapshotUpload } from './types';
+import {
+  SnapshotCreate,
+  SnapshotEvent,
+  SnapshotUpdate,
+  SnapshotUpload,
+} from './types';
 import { HttpStatusCode } from 'axios';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -372,7 +377,24 @@ export class SnapshotsService {
       where: {
         id,
       },
-      data,
+      data: {
+        analyticsJobID: data.analyticsJobID,
+        timezone: data.timezone,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
+        width: data.width,
+        height: data.height,
+        timestamp: data.timestamp,
+        availableCloud: data.availableCloud,
+        availableLocally: data.availableLocally,
+        analyzed: data.analyzed,
+        analyzedFileName: data.analyzedFileName,
+        primaryTag: data.primaryTag,
+        tags: data.tags,
+        analyzing: data.analyzing,
+        analyzeStart: data.analyzeStart,
+        analyzeEnd: data.analyzeEnd,
+      },
       include: {
         camera: {
           select: {

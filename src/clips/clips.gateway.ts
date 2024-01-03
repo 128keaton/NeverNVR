@@ -43,7 +43,7 @@ export class ClipsGateway extends CommonGateway {
     });
   }
 
-  @Subscribe('never/clip/+/created')
+  @Subscribe('never_gateway/clip/+/created')
   handleCreated(
     @Payload()
     payload: {
@@ -67,7 +67,7 @@ export class ClipsGateway extends CommonGateway {
     );
   }
 
-  @Subscribe('never/clip/+/updated')
+  @Subscribe('never_gateway/clip/+/updated')
   handleUpdated(
     @Payload()
     payload: {
@@ -80,7 +80,7 @@ export class ClipsGateway extends CommonGateway {
     return this.clipsService.update(payload.id, payload.clip);
   }
 
-  @Subscribe('never/clip/+/deleted')
+  @Subscribe('never_gateway/clip/+/deleted')
   handleDeleted(
     @Payload()
     payload: {

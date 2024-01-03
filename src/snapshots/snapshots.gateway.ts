@@ -47,7 +47,7 @@ export class SnapshotsGateway extends CommonGateway {
     });
   }
 
-  @Subscribe('never/snapshot/+/created')
+  @Subscribe('never_gateway/snapshot/+/created')
   handleCreated(
     @Payload()
     payload: {
@@ -68,7 +68,7 @@ export class SnapshotsGateway extends CommonGateway {
     );
   }
 
-  @Subscribe('never/snapshot/+/deleted')
+  @Subscribe('never_gateway/snapshot/+/deleted')
   handleDeleted(
     @Payload()
     payload: {
@@ -80,7 +80,7 @@ export class SnapshotsGateway extends CommonGateway {
     return this.snapshotsService.delete(payload.id, false);
   }
 
-  @Subscribe('never/snapshot/+/updated')
+  @Subscribe('never_gateway/snapshot/+/updated')
   handleUpdated(
     @Payload()
     payload: {

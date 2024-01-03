@@ -43,7 +43,7 @@ export class CamerasGateway extends CommonGateway {
     });
   }
 
-  @Subscribe('never/camera/+/created')
+  @Subscribe('never_gateway/camera/+/created')
   handleCreated(
     @Payload()
     payload: {
@@ -55,7 +55,7 @@ export class CamerasGateway extends CommonGateway {
     return this.camerasService.create(payload.camera, false);
   }
 
-  @Subscribe('never/camera/+/deleted')
+  @Subscribe('never_gateway/camera/+/deleted')
   handleDeleted(
     @Payload()
     payload: {
@@ -67,7 +67,7 @@ export class CamerasGateway extends CommonGateway {
     return this.camerasService.delete(payload.id, false);
   }
 
-  @Subscribe('never/camera/+/updated')
+  @Subscribe('never_gateway/camera/+/updated')
   handleUpdated(
     @Payload()
     payload: {
