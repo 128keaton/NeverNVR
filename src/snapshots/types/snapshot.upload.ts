@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class SnapshotUpload {
   @ApiProperty({
@@ -24,31 +24,33 @@ export class SnapshotUpload {
   cameraID: string;
 
   @ApiProperty({
-    example: 1238,
+    example: '1238',
     required: true,
   })
-  @IsNumber()
-  fileSize: number;
+  @IsString()
+  fileSize: string;
 
   @ApiProperty({
-    example: 1920,
+    example: '1280',
     required: true,
   })
-  @IsNumber()
-  width: number;
+  @IsString()
+  width: string;
 
   @ApiProperty({
-    example: 1080,
+    example: '720',
     required: true,
   })
-  @IsNumber()
-  height: number;
+  @IsString()
+  height: string;
 
   @ApiProperty({
-    type: Date,
-    required: false,
+    type: String,
+    required: true,
+    description: 'ISO time string',
   })
-  timestamp?: Date;
+  @IsString()
+  timestamp: string;
 
   @ApiProperty({
     type: String,

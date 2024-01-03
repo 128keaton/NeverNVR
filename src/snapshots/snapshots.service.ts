@@ -67,7 +67,8 @@ export class SnapshotsService {
     if (!file)
       throw new HttpException('Invalid request', HttpStatusCode.BadRequest);
 
-    this.logger.log(`Uploading ${JSON.stringify(file)} to S3`);
+    this.logger.verbose(`Uploading ${file.originalname} to S3`);
+    this.logger.debug(`Upload parameters: ${JSON.stringify(upload)}`);
 
     const camera = await this.prismaService.camera.findFirst({
       where: {
@@ -93,8 +94,7 @@ export class SnapshotsService {
     if (!camera)
       throw new HttpException('Could not find camera', HttpStatusCode.NotFound);
 
-    const timestamp = upload.timestamp || new Date();
-    const baseDirectory = timestamp.toISOString().split('T')[0];
+    const baseDirectory = upload.timestamp.split('T')[0];
     const cloudFileName = `${baseDirectory}/${camera.id}/${file.originalname}`;
 
     const availableCloud = await this.s3Service.uploadFile(
@@ -124,10 +124,10 @@ export class SnapshotsService {
         availableLocally: false,
         timezone: upload.timezone || camera.timezone,
         fileName: file.originalname,
-        fileSize: parseInt(`${upload.fileSize}`),
-        width: parseInt(`${upload.width}`),
-        height: parseInt(`${upload.height}`),
-        timestamp,
+        fileSize: parseInt(upload.fileSize),
+        width: parseInt(upload.width),
+        height: parseInt(upload.height),
+        timestamp: new Date(upload.timestamp),
         analyticsJobID,
         gateway: {
           connect: {
