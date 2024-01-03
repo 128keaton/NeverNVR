@@ -6,7 +6,8 @@ import {
 } from '../services/novu/services';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { User } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
+import { createPaginator } from 'prisma-pagination';
 
 @Injectable()
 export class UsersService {
@@ -232,5 +233,43 @@ export class UsersService {
       });
 
     return { success: didSend };
+  }
+
+  getUsers(request: {
+    pageSize?: number;
+    pageNumber?: number;
+    search?: string;
+  }) {
+    const paginate = createPaginator({ perPage: request.pageSize || 20 });
+
+    let where = {};
+
+    if (!!request.search) {
+      where = {
+        OR: [
+          {
+            name: {
+              contains: request.search,
+            },
+          },
+          {
+            email: {
+              contains: request.search,
+            },
+          },
+        ],
+      };
+    }
+
+    return paginate<User, Prisma.UserFindManyArgs>(
+      this.prismaService.extended.user,
+      {
+        where,
+        orderBy: {
+          id: 'desc',
+        },
+      },
+      { page: request.pageNumber },
+    );
   }
 }

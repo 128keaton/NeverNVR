@@ -13,7 +13,7 @@ import { LoginRequest } from './requests';
 // import { AccessTokenGuard, RefreshTokenGuard } from './guards';
 // import { Request } from 'express';
 
-@Controller('auth')
+@Controller('')
 export class AuthController {
   constructor(private authService: AuthService) {}
   @HttpCode(HttpStatus.OK)
