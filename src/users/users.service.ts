@@ -113,7 +113,8 @@ export class UsersService {
   update(
     id: string,
     update: {
-      name?: string;
+      firstName?: string;
+      lastName?: string;
       refreshToken?: string;
     },
   ) {
