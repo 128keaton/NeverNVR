@@ -1,13 +1,10 @@
-import {
-  MessageBody,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { SnapshotsService } from './snapshots.service';
 import { CommonGateway } from '../common/common-gateway';
-import { Snapshot, SnapshotEvent } from './types';
+import { SnapshotCreate, SnapshotEvent, SnapshotUpdate } from './types';
+import { Payload, Subscribe } from '@vipstorage/nest-mqtt';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -50,46 +47,48 @@ export class SnapshotsGateway extends CommonGateway {
     });
   }
 
-  @SubscribeMessage('created')
+  @Subscribe('never/snapshot/+/created')
   handleCreated(
-    @MessageBody()
-    request: {
-      snapshot: Snapshot;
+    @Payload()
+    payload: {
       id: string;
-      cameraID: string;
-      gatewayID: string;
+      snapshot: SnapshotCreate;
+      gatewayID?: string;
+      cameraID?: string;
     },
   ) {
     return this.snapshotsService.create(
       {
-        ...request.snapshot,
-        id: request.id,
-        cameraID: request.cameraID,
-        gatewayID: request.gatewayID,
+        ...payload.snapshot,
+        id: payload.id,
+        cameraID: payload.cameraID,
+        gatewayID: payload.gatewayID,
       },
       false,
     );
   }
 
-  @SubscribeMessage('deleted')
+  @Subscribe('never/snapshot/+/deleted')
   handleDeleted(
-    @MessageBody()
-    request: {
-      deleted: Snapshot;
+    @Payload()
+    payload: {
       id: string;
+      deleted: SnapshotCreate;
+      gatewayID?: string;
     },
   ) {
-    return this.snapshotsService.delete(request.id, false);
+    return this.snapshotsService.delete(payload.id, false);
   }
 
-  @SubscribeMessage('updated')
+  @Subscribe('never/snapshot/+/updated')
   handleUpdated(
-    @MessageBody()
-    request: {
-      snapshot: Snapshot;
+    @Payload()
+    payload: {
       id: string;
+      snapshot: SnapshotUpdate;
+      gatewayID?: string;
     },
   ) {
-    return this.snapshotsService.update(request.id, request.snapshot, false);
+    return this.snapshotsService.update(payload.id, payload.snapshot, false);
   }
 }

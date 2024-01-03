@@ -1,15 +1,10 @@
-import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
-import { Socket } from 'socket.io';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Camera, CameraEvent, CameraUpdate } from './types';
 import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { CamerasService } from './cameras.service';
 import { CommonGateway } from '../common/common-gateway';
+import { Payload, Subscribe } from '@vipstorage/nest-mqtt';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -48,65 +43,49 @@ export class CamerasGateway extends CommonGateway {
     });
   }
 
-  @SubscribeMessage('response')
-  handleResponse(
-    @MessageBody() response: { type: string; data?: any },
-    @ConnectedSocket() client: Socket,
+  @Subscribe('never/camera/+/created')
+  handleCreated(
+    @Payload()
+    payload: {
+      id: string;
+      camera: Camera;
+      gatewayID?: string;
+    },
   ) {
-    switch (response.type) {
-      case 'identify':
-        if (!!response.data.gatewayID) {
-          this.logger.verbose(
-            `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
-          );
-          this.associateGatewayID(client.id, response.data.gatewayID).then();
-
-          if (!!response.data.cameras) {
-            this.camerasService
-              .checkForMissingCameras(
-                response.data.gatewayID,
-                response.data.cameras,
-              )
-              .then();
-          } else {
-            this.logger.warn(
-              `Response was missing cameras: ${JSON.stringify(response.data)}`,
-            );
-          }
-        }
-        break;
-      default:
-        this.logger.verbose(
-          `Client with ID ${client.id} returned unknown response ${
-            response.type
-          } with data ${response.data || 'none'}`,
-        );
-        break;
-    }
+    return this.camerasService.create(payload.camera, false);
   }
 
-  @SubscribeMessage('created')
-  handleCreated(@MessageBody() request: { camera: Camera; id: string }) {
-    return this.camerasService.create(request.camera, false);
+  @Subscribe('never/camera/+/deleted')
+  handleDeleted(
+    @Payload()
+    payload: {
+      id: string;
+      camera: Camera;
+      gatewayID?: string;
+    },
+  ) {
+    return this.camerasService.delete(payload.id, false);
   }
 
-  @SubscribeMessage('deleted')
-  handleDeleted(@MessageBody() request: { camera: Camera; id: string }) {
-    return this.camerasService.delete(request.id, false);
-  }
-
-  @SubscribeMessage('updated')
-  handleUpdated(@MessageBody() request: { camera: CameraUpdate; id: string }) {
+  @Subscribe('never/camera/+/updated')
+  handleUpdated(
+    @Payload()
+    payload: {
+      id: string;
+      camera: CameraUpdate;
+      gatewayID?: string;
+    },
+  ) {
     return this.camerasService.update(
-      request.id,
+      payload.id,
       {
-        stream: request.camera.stream,
-        record: request.camera.record,
-        name: request.camera.name,
-        status: request.camera.status,
-        timezone: request.camera.timezone,
-        synchronized: request.camera.synchronized,
-        lastConnection: request.camera.lastConnection,
+        stream: payload.camera.stream,
+        record: payload.camera.record,
+        name: payload.camera.name,
+        status: payload.camera.status,
+        timezone: payload.camera.timezone,
+        synchronized: payload.camera.synchronized,
+        lastConnection: payload.camera.lastConnection,
       },
       false,
     );
