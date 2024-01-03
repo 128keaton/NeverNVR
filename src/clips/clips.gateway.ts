@@ -48,7 +48,7 @@ export class ClipsGateway extends CommonGateway {
     @Payload()
     payload: {
       id: string;
-      snapshot: any;
+      clip: any;
       gatewayID?: string;
       cameraID?: string;
     },
@@ -58,7 +58,7 @@ export class ClipsGateway extends CommonGateway {
     this.logger.verbose(`Creating new clip from ${payload.gatewayID}`);
     return this.clipsService.create(
       {
-        ...payload.snapshot,
+        ...payload.clip,
         id: payload.id,
         gatewayID: payload.gatewayID,
       },
