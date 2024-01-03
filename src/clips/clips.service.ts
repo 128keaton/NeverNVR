@@ -254,6 +254,7 @@ export class ClipsService {
     },
     cameraID?: string,
     gatewayID?: string,
+    emitLocal = true,
   ) {
     const existingClip = await this.prismaService.clip.findFirst({
       where: {
@@ -319,6 +320,14 @@ export class ClipsService {
         },
       },
     });
+
+    if (emitLocal)
+      await this.clipQueue.add('outgoing', {
+        eventType: 'updated',
+        clip: updatedClip,
+        cameraID: updatedClip.cameraID,
+        gatewayID: updatedClip.gatewayID,
+      });
 
     this._clipEvents.next({
       eventType: 'updated',

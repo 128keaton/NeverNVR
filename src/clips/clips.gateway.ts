@@ -82,6 +82,7 @@ export class ClipsGateway extends CommonGateway {
       payload.clip,
       payload.cameraID,
       payload.gatewayID,
+      false,
     );
   }
 
