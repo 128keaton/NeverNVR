@@ -2,10 +2,19 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import { Job, Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
-import { CameraEvent, CameraUpdate, CameraCreate, Camera } from './types';
+import {
+  CameraEvent,
+  CameraUpdate,
+  CameraCreate,
+  Camera,
+  CameraSnapshotsResponse,
+} from './types';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, Subject } from 'rxjs';
 import { ConnectionStatus } from '@prisma/client';
+import { AppHelpers } from '../app.helpers';
+import { S3Service } from '../services/s3/s3.service';
+import { HttpStatusCode } from 'axios';
 
 @Injectable()
 export class CamerasService {
@@ -17,6 +26,7 @@ export class CamerasService {
   }
 
   constructor(
+    private s3Service: S3Service,
     private httpService: HttpService,
     private prismaService: PrismaService,
     @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,
@@ -72,6 +82,83 @@ export class CamerasService {
         .get<Camera>(`${gateway.connectionURL}/api/cameras/${id}`)
         .pipe(map((response) => response.data)),
     );
+  }
+
+  async getPreview(id: string) {
+    const snapshot = await this.prismaService.snapshot
+      .findFirst({
+        where: {
+          cameraID: id,
+        },
+        orderBy: {
+          timestamp: 'desc',
+        },
+        select: {
+          timestamp: true,
+          cameraID: true,
+          fileName: true,
+          gateway: {
+            select: {
+              s3Bucket: true,
+            },
+          },
+        },
+      })
+      .catch((err) => {
+        this.logger.error(err);
+        return null;
+      });
+
+    if (!snapshot)
+      throw new HttpException(
+        'Could not find snapshot',
+        HttpStatusCode.NotFound,
+      );
+
+    const fileKey = AppHelpers.getFileKey(
+      snapshot.fileName,
+      snapshot.cameraID,
+      '.jpeg',
+    );
+
+    return this.s3Service.getFile(fileKey, snapshot.gateway.s3Bucket);
+  }
+
+  async getSnapshots(
+    id: string,
+    limit: number = 50,
+  ): Promise<CameraSnapshotsResponse> {
+    const snapshotCount = await this.prismaService.snapshot.count({
+      where: {
+        cameraID: id,
+      },
+    });
+
+    const snapshots = await this.prismaService.snapshot.findMany({
+      where: {
+        cameraID: id,
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+      take: limit,
+      select: {
+        timestamp: true,
+        cameraID: true,
+        id: true,
+      },
+    });
+
+    return {
+      total: snapshotCount,
+      snapshots: snapshots.map((snapshot) => {
+        return {
+          cameraID: snapshot.cameraID,
+          snapshotID: snapshot.id,
+          timestamp: snapshot.timestamp,
+        };
+      }),
+    };
   }
 
   async getLogOutput(id: string) {

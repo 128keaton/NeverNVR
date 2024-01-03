@@ -4,12 +4,19 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
 } from '@nestjs/common';
 import { CamerasService } from './cameras.service';
-import { Camera, CameraCreate, CameraUpdate, CamerasResponse } from './types';
+import {
+  Camera,
+  CameraCreate,
+  CameraUpdate,
+  CamerasResponse,
+  CameraSnapshotsResponse,
+} from './types';
 import { Camera as CameraEntity } from '@prisma/client';
 
 @Controller('cameras')
@@ -49,6 +56,24 @@ export class CamerasController {
   @ApiOperation({ summary: 'Get a cameras details' })
   getDetails(@Param('id') id: string): Promise<Camera> {
     return this.camerasService.getDetails(id);
+  }
+
+  @Get(':id/preview.jpeg')
+  @ApiOperation({ summary: 'Get a cameras preview image' })
+  @Header('Content-Type', 'image/jpeg')
+  getPreview(@Param('id') id: string) {
+    return this.camerasService.getPreview(id);
+  }
+
+  @Get(':id/snapshots')
+  @ApiResponse({
+    status: 200,
+    description: 'The list of snapshot IDs',
+    type: CameraSnapshotsResponse,
+  })
+  @ApiOperation({ summary: 'Get a cameras details' })
+  getSnapshots(@Param('id') id: string): Promise<CameraSnapshotsResponse> {
+    return this.camerasService.getSnapshots(id);
   }
 
   @Get(':id/logs')
