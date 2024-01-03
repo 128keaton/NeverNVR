@@ -270,6 +270,10 @@ export class CamerasService {
   async create(create: CameraCreate, emit = true) {
     const gatewayID = `${create.gatewayID}`;
 
+    this.logger.verbose(
+      `Creating camera ${create.name} on ${create.gatewayID}`,
+    );
+
     const camera = await this.prismaService.camera.create({
       data: {
         id: create.id,
@@ -286,13 +290,18 @@ export class CamerasService {
 
     if (!camera) return camera;
 
-    if (emit)
+    if (emit) {
+      this.logger.verbose(
+        `Emitting outgoing created event for camera ${camera.id}`,
+      );
       await this.camerasQueue.add('outgoing', {
         eventType: 'created',
         camera,
         create,
       });
+    }
 
+    this.logger.verbose(`Adding created event for camera ${camera.id}`);
     this._cameraEvents.next({
       eventType: 'created',
       camera,

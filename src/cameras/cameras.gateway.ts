@@ -49,6 +49,12 @@ export class CamerasGateway extends CommonGateway {
 
       delete clonedCamera['gateway'];
 
+      this.logger.debug(
+        `Emitting event ${event.eventType} with data ${
+          event.camera.id
+        } and ${JSON.stringify(clonedCamera)}`,
+      );
+
       const didEmit = client.emit(event.eventType, {
         id: event.camera.id,
         camera: clonedCamera,
