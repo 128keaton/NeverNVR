@@ -111,14 +111,12 @@ export class ClipsService {
       await this.clipQueue.add('outgoing', {
         eventType: 'deleted',
         clip: deleted,
-        cameraName: deleted.camera.name,
         cameraID: deleted.cameraID,
       });
 
     this._clipEvents.next({
       eventType: 'deleted',
       clip: deleted,
-      cameraName: deleted.camera.name,
       cameraID: deleted.cameraID,
     });
 
@@ -214,14 +212,12 @@ export class ClipsService {
       await this.clipQueue.add('outgoing', {
         eventType: 'created',
         clip,
-        cameraName: clip.camera.name,
         cameraID: clip.cameraID,
       });
 
     this._clipEvents.next({
       eventType: 'created',
       clip,
-      cameraName: clip.camera.name,
       cameraID: clip.cameraID,
     });
 
@@ -290,7 +286,6 @@ export class ClipsService {
     this._clipEvents.next({
       eventType: 'updated',
       clip: updatedClip,
-      cameraName: updatedClip.camera.name,
       cameraID: updatedClip.cameraID,
     });
   }

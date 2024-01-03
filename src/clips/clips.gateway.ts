@@ -47,7 +47,6 @@ export class ClipsGateway extends CommonGateway {
             id: event.cameraID,
           },
         },
-        cameraName: event.cameraName,
         cameraID: event.cameraID,
       });
 
@@ -62,7 +61,6 @@ export class ClipsGateway extends CommonGateway {
       client.emit(event.eventType, {
         id: event.clip.id,
         clip,
-        cameraName: event.cameraName,
         cameraID: event.cameraID,
       });
     });

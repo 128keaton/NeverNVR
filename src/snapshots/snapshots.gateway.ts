@@ -44,7 +44,6 @@ export class SnapshotsGateway extends CommonGateway {
       const didEmit = client.emit(event.eventType, {
         id: event.snapshot.id,
         snapshot,
-        cameraName: event.cameraName,
         cameraID: event.cameraID,
       });
 
@@ -59,7 +58,6 @@ export class SnapshotsGateway extends CommonGateway {
       client.emit(event.eventType, {
         id: event.snapshot.id,
         snapshot,
-        cameraName: event.cameraName,
         cameraID: event.cameraID,
       });
     });

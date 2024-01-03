@@ -157,7 +157,6 @@ export class SnapshotsService {
       eventType: 'created',
       snapshot,
       create: upload,
-      cameraName: camera.name,
       cameraID: camera.id,
     });
 
@@ -165,7 +164,6 @@ export class SnapshotsService {
       create: upload,
       snapshot,
       eventType: 'created',
-      cameraName: camera.name,
       cameraID: camera.id,
     });
 
@@ -250,7 +248,6 @@ export class SnapshotsService {
         eventType: 'created',
         snapshot,
         create,
-        cameraName: camera.name,
         cameraID: camera.id,
       });
 
@@ -258,7 +255,6 @@ export class SnapshotsService {
       create,
       snapshot,
       eventType: 'created',
-      cameraName: camera.name,
       cameraID: camera.id,
     });
 
@@ -402,7 +398,6 @@ export class SnapshotsService {
     this._snapshotEvents.next({
       snapshot,
       eventType: 'updated',
-      cameraName: snapshot.camera.name,
       cameraID: snapshot.cameraID,
     });
 
@@ -463,14 +458,12 @@ export class SnapshotsService {
       await this.snapshotsQueue.add('outgoing', {
         eventType: 'deleted',
         snapshot: deleted,
-        cameraName: deleted.camera.name,
         cameraID: deleted.cameraID,
       });
 
     this._snapshotEvents.next({
       snapshot: deleted,
       eventType: 'deleted',
-      cameraName: deleted.camera.name,
       cameraID: deleted.cameraID,
     });
 

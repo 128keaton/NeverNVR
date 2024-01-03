@@ -8,6 +8,5 @@ export type SnapshotEvent = {
   eventType: 'updated' | 'created' | 'deleted' | 'sync';
   update?: SnapshotUpdate;
   create?: SnapshotCreate | SnapshotUpload;
-  cameraName?: string;
   cameraID?: string;
 };
