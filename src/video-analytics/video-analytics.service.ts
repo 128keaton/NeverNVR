@@ -13,6 +13,13 @@ export class VideoAnalyticsService {
   private videoAnalyticsSocket: Socket;
   private logger = new Logger(VideoAnalyticsService.name);
   private readonly apiURL: string;
+  private readonly apiToken: string;
+
+  get headers() {
+    return {
+      Authorization: `Bearer: ${this.apiToken}`,
+    };
+  }
 
   constructor(
     private configService: ConfigService,
@@ -21,6 +28,7 @@ export class VideoAnalyticsService {
     @InjectQueue('snapshots') private snapshotQueue: Queue,
   ) {
     this.apiURL = this.configService.get('VA_API_URL') || '';
+    this.apiToken = this.configService.get('VA_API_TOKEN') || '';
 
     this.videoAnalyticsSocket = io(this.configService.get('VA_WS_URL') || '', {
       autoConnect: true,
@@ -59,12 +67,18 @@ export class VideoAnalyticsService {
     const videoClipPath = AppHelpers.getFileKey(fileName, cameraID, '.mp4');
 
     return this.httpService
-      .post<JobResponse>(url, {
-        bucket_name: bucketName,
-        request_type: 'classify',
-        images: [],
-        videos: [videoClipPath],
-      })
+      .post<JobResponse>(
+        url,
+        {
+          bucket_name: bucketName,
+          request_type: 'classify',
+          images: [],
+          videos: [videoClipPath],
+        },
+        {
+          headers: this.headers,
+        },
+      )
       .pipe(
         map((response) => response.data),
         map((data) => data.id),
@@ -81,12 +95,18 @@ export class VideoAnalyticsService {
     const imageClipPath = AppHelpers.getFileKey(fileName, cameraID, '.jpeg');
 
     return this.httpService
-      .post<JobResponse>(url, {
-        bucket_name: bucketName,
-        request_type: 'classify',
-        images: [imageClipPath],
-        videos: [],
-      })
+      .post<JobResponse>(
+        url,
+        {
+          bucket_name: bucketName,
+          request_type: 'classify',
+          images: [imageClipPath],
+          videos: [],
+        },
+        {
+          headers: this.headers,
+        },
+      )
       .pipe(
         map((response) => response.data),
         map((data) => data.id),
@@ -100,26 +120,34 @@ export class VideoAnalyticsService {
 
   getClassificationData(fileName: string, jobID: string) {
     const url = `${this.apiURL}/${jobID}/${fileName}`;
-    return this.httpService.get<ClassificationResponse>(url).pipe(
-      map((response) => response.data),
-      catchError((err) => {
-        this.logger.error(err);
+    return this.httpService
+      .get<ClassificationResponse>(url, {
+        headers: this.headers,
+      })
+      .pipe(
+        map((response) => response.data),
+        catchError((err) => {
+          this.logger.error(err);
 
-        return of(null);
-      }),
-    );
+          return of(null);
+        }),
+      );
   }
 
   checkJobStatus(jobID: string) {
     const url = `${this.apiURL}/${jobID}`;
-    return this.httpService.get<JobResponse>(url).pipe(
-      map((response) => response.data),
-      catchError((err) => {
-        this.logger.error(err);
+    return this.httpService
+      .get<JobResponse>(url, {
+        headers: this.headers,
+      })
+      .pipe(
+        map((response) => response.data),
+        catchError((err) => {
+          this.logger.error(err);
 
-        return of(null);
-      }),
-    );
+          return of(null);
+        }),
+      );
   }
 
   handleJobStarted(job: JobResponse) {

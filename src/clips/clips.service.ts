@@ -53,7 +53,7 @@ export class ClipsService {
         if (job.stalled) {
           await this.update(
             clip.id,
-            { analyzing: false },
+            { analyzing: false, analyzeEnd: new Date() },
             clip.cameraID,
             clip.gatewayID,
           );
