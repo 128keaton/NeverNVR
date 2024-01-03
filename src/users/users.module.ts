@@ -25,6 +25,7 @@ import { UsersService } from './users.service';
     ConfigModule,
     ConfigModule.forFeature(novuConfig),
   ],
+  exports: [UsersService],
   controllers: [UsersController],
 })
 export class UsersModule {}
