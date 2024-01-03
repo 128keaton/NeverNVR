@@ -12,6 +12,7 @@ import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { RouterModule } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'client', 'dist', 'never_ui'),
     }),
+    AuthModule,
     PrismaModule,
     CamerasModule,
     GatewaysModule,
@@ -34,6 +36,10 @@ import { UsersModule } from './users/users.module';
       {
         path: 'users',
         module: UsersModule,
+      },
+      {
+        path: 'auth',
+        module: AuthModule,
       },
     ]),
   ],
