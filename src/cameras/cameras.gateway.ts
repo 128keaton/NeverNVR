@@ -25,11 +25,11 @@ export class CamerasGateway extends CommonGateway {
     super(gatewaysService);
     this.logger.verbose('Cameras gateway active');
     this.camerasService.cameraEvents.subscribe((event) => {
-      this.handleCameraEvent(event, false);
+      return this.handleCameraEvent(event, true);
     });
   }
 
-  handleCameraEvent(event: CameraEvent, emitLocal = true) {
+  async handleCameraEvent(event: CameraEvent, emitLocal = true) {
     const client = this.getGatewayClient(event.camera.gatewayID);
     const camera = {
       ...event.camera,
@@ -44,17 +44,13 @@ export class CamerasGateway extends CommonGateway {
         )} event to ${client.id}`,
       );
 
-      const didEmit = client.emit(event.eventType, {
-        camera,
-      });
-
-      if (didEmit)
-        this.logger.debug(
-          `Emit ${event.eventType} camera ${JSON.stringify(camera)} event to ${
-            client.id
-          }`,
-        );
-      else this.logger.warn('Could not emit');
+      await client
+        .emitWithAck(event.eventType, {
+          camera,
+        })
+        .catch((err) => {
+          this.logger.error(err);
+        });
     } else if (!client && emitLocal)
       this.logger.error(`Client was null for ${event.camera.gatewayID}`);
 
