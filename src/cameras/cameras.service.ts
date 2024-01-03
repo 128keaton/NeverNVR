@@ -49,6 +49,7 @@ export class CamerasService {
         gateway: {
           select: {
             name: true,
+            id: true,
             connectionURL: true,
           },
         },
@@ -414,6 +415,7 @@ export class CamerasService {
           include: {
             gateway: {
               select: {
+                id: true,
                 name: true,
                 connectionURL: true,
               },
