@@ -43,21 +43,16 @@ export class CamerasGateway extends CommonGateway {
     delete camera.gatewayID;
 
     if (!!client && emitLocal) {
-      // Remove gateway when sending request to gateway
-      const clonedCamera: any = {};
-      Object.assign(clonedCamera, camera);
-
-      delete clonedCamera['gateway'];
 
       this.logger.debug(
         `Emitting event ${event.eventType} with data ${
           event.camera.id
-        } and ${JSON.stringify(clonedCamera)}`,
+        } and ${JSON.stringify(camera)}`,
       );
 
       const didEmit = client.emit(event.eventType, {
         id: event.camera.id,
-        camera: clonedCamera,
+        camera: camera,
       });
 
       if (!didEmit) this.logger.warn('Could not emit');
