@@ -9,4 +9,5 @@ export type SnapshotEvent = {
   update?: SnapshotUpdate;
   create?: SnapshotCreate | SnapshotUpload;
   cameraName?: string;
+  cameraID?: string;
 };

@@ -92,7 +92,7 @@ export class SnapshotsService {
 
     const timestamp = upload.timestamp || new Date();
     const baseDirectory = timestamp.toISOString().split('T')[0];
-    const cloudFileName = `${baseDirectory}/${camera.name}/${file.originalname}`;
+    const cloudFileName = `${baseDirectory}/${camera.id}/${file.originalname}`;
 
     const availableCloud = await this.s3Service.uploadFile(
       cloudFileName,
@@ -109,7 +109,7 @@ export class SnapshotsService {
     const analyticsJobID = await lastValueFrom(
       this.videoAnalyticsService.classifyImage(
         file.originalname,
-        camera.name,
+        camera.id,
         gateway.s3Bucket,
       ),
     );
@@ -158,6 +158,7 @@ export class SnapshotsService {
       snapshot,
       create: upload,
       cameraName: camera.name,
+      cameraID: camera.id,
     });
 
     this._snapshotEvents.next({
@@ -165,6 +166,7 @@ export class SnapshotsService {
       snapshot,
       eventType: 'created',
       cameraName: camera.name,
+      cameraID: camera.id,
     });
 
     return snapshot;
@@ -200,7 +202,7 @@ export class SnapshotsService {
       analyticsJobID = await lastValueFrom(
         this.videoAnalyticsService.classifyImage(
           create.fileName,
-          camera.name,
+          camera.id,
           gateway.s3Bucket,
         ),
       );
@@ -249,6 +251,7 @@ export class SnapshotsService {
         snapshot,
         create,
         cameraName: camera.name,
+        cameraID: camera.id,
       });
 
     this._snapshotEvents.next({
@@ -256,6 +259,7 @@ export class SnapshotsService {
       snapshot,
       eventType: 'created',
       cameraName: camera.name,
+      cameraID: camera.id,
     });
 
     return snapshot;
@@ -399,6 +403,7 @@ export class SnapshotsService {
       snapshot,
       eventType: 'updated',
       cameraName: snapshot.camera.name,
+      cameraID: snapshot.cameraID,
     });
 
     return snapshot;
@@ -448,7 +453,7 @@ export class SnapshotsService {
     // Delete from S3
     const fileKey = AppHelpers.getFileKey(
       deleted.fileName,
-      deleted.camera.name,
+      deleted.cameraID,
       '.jpeg',
     );
 
@@ -459,12 +464,14 @@ export class SnapshotsService {
         eventType: 'deleted',
         snapshot: deleted,
         cameraName: deleted.camera.name,
+        cameraID: deleted.cameraID,
       });
 
     this._snapshotEvents.next({
       snapshot: deleted,
       eventType: 'deleted',
       cameraName: deleted.camera.name,
+      cameraID: deleted.cameraID,
     });
 
     return deleted;
@@ -481,14 +488,10 @@ export class SnapshotsService {
         availableCloud: true,
         availableLocally: true,
         analyzedFileName: true,
+        cameraID: true,
         gateway: {
           select: {
             s3Bucket: true,
-          },
-        },
-        camera: {
-          select: {
-            name: true,
           },
         },
       },
@@ -511,7 +514,7 @@ export class SnapshotsService {
 
     const fileKey = AppHelpers.getFileKey(
       analyzed ? snapshot.analyzedFileName : snapshot.fileName,
-      snapshot.camera.name,
+      snapshot.cameraID,
       '.jpeg',
     );
 
@@ -521,7 +524,7 @@ export class SnapshotsService {
         // Fetch using snapshot timestamp instead of parsed filename timestamp
         const timestamp = snapshot.timestamp || new Date();
         const baseDirectory = timestamp.toISOString().split('T')[0];
-        const cloudFileName = `${baseDirectory}/${snapshot.camera.name}/${snapshot.fileName}`;
+        const cloudFileName = `${baseDirectory}/${snapshot.cameraID}/${snapshot.fileName}`;
 
         return this.s3Service.getFileURL(
           cloudFileName,
@@ -545,11 +548,6 @@ export class SnapshotsService {
               s3Bucket: true,
             },
           },
-          camera: {
-            select: {
-              name: true,
-            },
-          },
         },
       })
       .catch((err) => {
@@ -565,7 +563,7 @@ export class SnapshotsService {
 
     const fileKey = AppHelpers.getFileKey(
       snapshot.fileName,
-      snapshot.camera.name,
+      snapshot.cameraID,
       '.jpeg',
     );
 

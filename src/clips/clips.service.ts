@@ -100,7 +100,7 @@ export class ClipsService {
     // Delete from S3
     const fileKey = AppHelpers.getFileKey(
       deleted.fileName,
-      deleted.camera.name,
+      deleted.cameraID,
       '.mp4',
     );
 
@@ -112,12 +112,14 @@ export class ClipsService {
         eventType: 'deleted',
         clip: deleted,
         cameraName: deleted.camera.name,
+        cameraID: deleted.cameraID,
       });
 
     this._clipEvents.next({
       eventType: 'deleted',
       clip: deleted,
       cameraName: deleted.camera.name,
+      cameraID: deleted.cameraID,
     });
 
     return deleted;
@@ -219,6 +221,7 @@ export class ClipsService {
       eventType: 'created',
       clip,
       cameraName: clip.camera.name,
+      cameraID: clip.cameraID,
     });
 
     return clip;
@@ -287,6 +290,7 @@ export class ClipsService {
       eventType: 'updated',
       clip: updatedClip,
       cameraName: updatedClip.camera.name,
+      cameraID: updatedClip.cameraID,
     });
   }
 
@@ -407,11 +411,7 @@ export class ClipsService {
         fileName: true,
         availableLocally: true,
         availableCloud: true,
-        camera: {
-          select: {
-            name: true,
-          },
-        },
+        cameraID: true,
         gateway: {
           select: {
             s3Bucket: true,
@@ -424,7 +424,7 @@ export class ClipsService {
     if (clip.availableCloud) {
       const fileKey = AppHelpers.getFileKey(
         clip.fileName,
-        clip.camera.name,
+        clip.cameraID,
         '.mp4',
       );
 
@@ -446,14 +446,10 @@ export class ClipsService {
         fileName: true,
         analyzedFileName: true,
         availableCloud: true,
+        cameraID: true,
         gateway: {
           select: {
             s3Bucket: true,
-          },
-        },
-        camera: {
-          select: {
-            name: true,
           },
         },
       },
@@ -479,7 +475,7 @@ export class ClipsService {
 
     const fileKey = AppHelpers.getFileKey(
       analyzed === true ? clip.analyzedFileName : clip.fileName,
-      clip.camera.name,
+      clip.cameraID,
       '.mp4',
     );
 
