@@ -43,7 +43,6 @@ export class CamerasGateway extends CommonGateway {
     delete camera.gatewayID;
 
     if (!!client && emitLocal) {
-
       this.logger.debug(
         `Emitting event ${event.eventType} with data ${
           event.camera.id
@@ -56,7 +55,8 @@ export class CamerasGateway extends CommonGateway {
       });
 
       if (!didEmit) this.logger.warn('Could not emit');
-    }
+    } else if (!client && emitLocal)
+      this.logger.error(`Client was null for ${event.camera.gatewayID}`);
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
