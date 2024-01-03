@@ -32,6 +32,8 @@ export class CamerasGateway extends CommonGateway {
   handleCameraEvent(event: CameraEvent, emitLocal = true) {
     const client = this.getGatewayClient(event.camera.gatewayID);
 
+    delete event.camera.name;
+
     const camera = {
       ...event.camera,
       ...event.update,
