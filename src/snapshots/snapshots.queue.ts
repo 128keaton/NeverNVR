@@ -3,16 +3,30 @@ import { Job } from 'bull';
 import { SnapshotAnalyzed, SnapshotEvent } from './types';
 import { SnapshotsGateway } from './snapshots.gateway';
 import { SnapshotsService } from './snapshots.service';
+import { GatewayEventsService } from '../gateway-events/gateway-events.service';
 
 @Processor('snapshots')
 export class SnapshotsQueue {
   constructor(
     private snapshotsGateway: SnapshotsGateway,
     private snapshotsService: SnapshotsService,
+    private gatewayEventsService: GatewayEventsService,
   ) {}
 
   @Process('outgoing')
-  processCamera(job: Job<SnapshotEvent>) {
+  async processCamera(job: Job<SnapshotEvent>) {
+    const snapshot = {
+      ...job.data.create,
+      ...job.data.snapshot,
+      ...job.data.update,
+    };
+
+    await this.gatewayEventsService.handleSnapshot(
+      job.data.eventType,
+      job.data.snapshot.id,
+      snapshot,
+    );
+
     return this.snapshotsGateway.handleSnapshotEvent(job.data);
   }
 

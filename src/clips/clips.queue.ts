@@ -3,16 +3,24 @@ import { Job } from 'bull';
 import { ClipsGateway } from './clips.gateway';
 import { ClipAnalyzed, ClipEvent } from './type';
 import { ClipsService } from './clips.service';
+import { GatewayEventsService } from '../gateway-events/gateway-events.service';
 
 @Processor('clips')
 export class ClipsQueue {
   constructor(
     private clipsGateway: ClipsGateway,
     private clipsService: ClipsService,
+    private gatewayEventsService: GatewayEventsService,
   ) {}
 
   @Process('outgoing')
-  processCamera(job: Job<ClipEvent>) {
+  async processCamera(job: Job<ClipEvent>) {
+    await this.gatewayEventsService.handleClip(
+      job.data.eventType,
+      job.data.clip.id,
+      job.data.clip,
+    );
+
     return this.clipsGateway.handleClipEvent(job.data);
   }
 

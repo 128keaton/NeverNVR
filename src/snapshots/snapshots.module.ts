@@ -8,6 +8,7 @@ import { SnapshotsQueue } from './snapshots.queue';
 import { BullModule } from '@nestjs/bull';
 import { S3Module } from '../services/s3/s3.module';
 import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
+import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
 
 @Module({
   providers: [SnapshotsService, SnapshotsGateway, SnapshotsQueue],
@@ -18,6 +19,7 @@ import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module'
     VideoAnalyticsModule,
     PrismaModule,
     GatewaysModule,
+    GatewayEventsModule,
     BullModule.registerQueue({
       name: 'snapshots',
     }),

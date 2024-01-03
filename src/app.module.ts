@@ -12,6 +12,7 @@ import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { StatsModule } from './stats/stats.module';
 import { VideoAnalyticsModule } from './video-analytics/video-analytics.module';
+import { GatewayEventsModule } from './gateway-events/gateway-events.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { VideoAnalyticsModule } from './video-analytics/video-analytics.module';
     ClipsModule,
     StatsModule,
     VideoAnalyticsModule,
+    GatewayEventsModule,
   ],
 })
 export class AppModule {}

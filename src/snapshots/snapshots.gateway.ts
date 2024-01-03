@@ -1,5 +1,4 @@
 import {
-  ConnectedSocket,
   MessageBody,
   SubscribeMessage,
   WebSocketGateway,
@@ -8,7 +7,6 @@ import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { SnapshotsService } from './snapshots.service';
 import { CommonGateway } from '../common/common-gateway';
-import { Socket } from 'socket.io';
 import { Snapshot, SnapshotEvent } from './types';
 
 @WebSocketGateway({
@@ -30,8 +28,7 @@ export class SnapshotsGateway extends CommonGateway {
     });
   }
 
-  handleSnapshotEvent(event: SnapshotEvent, emitLocal = true) {
-    const clients = this.getGatewayClients(event.snapshot.gatewayID);
+  handleSnapshotEvent(event: SnapshotEvent) {
     const snapshot = {
       ...event.snapshot,
       ...event.update,
@@ -39,18 +36,6 @@ export class SnapshotsGateway extends CommonGateway {
     };
 
     delete snapshot.gatewayID;
-
-    clients.forEach((client) => {
-      if (emitLocal && !!client) {
-        const didEmit = client.emit(event.eventType, {
-          id: event.snapshot.id,
-          snapshot,
-          cameraID: event.cameraID,
-        });
-
-        if (!didEmit) this.logger.warn('Could not emit');
-      }
-    });
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
@@ -63,28 +48,6 @@ export class SnapshotsGateway extends CommonGateway {
         cameraID: event.cameraID,
       });
     });
-  }
-
-  @SubscribeMessage('response')
-  handleResponse(
-    @MessageBody() response: { type: string; data?: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    switch (response.type) {
-      case 'identify':
-        this.logger.verbose(
-          `Client with ID ${client.id} returned gatewayID ${response.data.gatewayID}`,
-        );
-        this.associateGatewayID(client.id, response.data.gatewayID).then();
-        break;
-      default:
-        this.logger.verbose(
-          `Client with ID ${client.id} returned unknown response ${
-            response.type
-          } with data ${response.data || 'none'}`,
-        );
-        break;
-    }
   }
 
   @SubscribeMessage('created')

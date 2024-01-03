@@ -26,34 +26,14 @@ export class ClipsGateway extends CommonGateway {
     this.logger.verbose('Clips gateway active');
 
     this.clipsService.clipEvents.subscribe((event) => {
-      this.handleClipEvent(event, false);
+      this.handleClipEvent(event);
     });
   }
 
-  handleClipEvent(event: ClipEvent, emitLocal = true) {
+  handleClipEvent(event: ClipEvent) {
     const clip = {
       ...event.clip,
     };
-
-    const clients = this.getGatewayClients(event.clip.gatewayID);
-
-    clients.forEach((client) => {
-      if (!!client && emitLocal) {
-        delete clip.gatewayID;
-        const didEmit = client.emit(event.eventType, {
-          id: event.clip.id,
-          clip: {
-            ...clip,
-            camera: {
-              id: event.cameraID,
-            },
-          },
-          cameraID: event.cameraID,
-        });
-
-        if (!didEmit) this.logger.warn('Could not emit');
-      }
-    });
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();

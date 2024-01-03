@@ -8,6 +8,7 @@ import { ClipsGateway } from './clips.gateway';
 import { ClipsQueue } from './clips.queue';
 import { ClipsController } from './clips.controller';
 import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
+import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
 
 @Module({
   providers: [ClipsService, ClipsGateway, ClipsQueue],
@@ -20,6 +21,7 @@ import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module'
     BullModule.registerQueue({
       name: 'clips',
     }),
+    GatewayEventsModule,
   ],
   controllers: [ClipsController],
 })

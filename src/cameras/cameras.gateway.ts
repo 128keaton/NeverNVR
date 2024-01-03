@@ -25,36 +25,16 @@ export class CamerasGateway extends CommonGateway {
     super(gatewaysService);
     this.logger.verbose('Cameras gateway active');
     this.camerasService.cameraEvents.subscribe((event) => {
-      return this.handleCameraEvent(event, true);
+      return this.handleCameraEvent(event);
     });
   }
 
-  async handleCameraEvent(event: CameraEvent, emitLocal = true) {
-    const clients = this.getGatewayClients(event.camera.gatewayID);
+  async handleCameraEvent(event: CameraEvent) {
     const camera = {
       ...event.camera,
       ...event.update,
       ...event.create,
     };
-
-    if (clients.length && emitLocal) {
-      for (const client of clients) {
-        this.logger.debug(
-          `Emitting ${event.eventType} camera ${JSON.stringify(
-            camera,
-          )} event to ${client.id}`,
-        );
-
-        await client
-          .emitWithAck(event.eventType, {
-            camera,
-          })
-          .catch((err) => {
-            this.logger.error(err);
-          });
-      }
-    } else if (!clients.length && emitLocal)
-      this.logger.error(`Client was null for ${event.camera.gatewayID}`);
 
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
