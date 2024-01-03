@@ -175,7 +175,7 @@ export class SnapshotsService {
   async create(create: SnapshotCreate, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
-        name: create.cameraName,
+        id: create.id,
       },
       select: {
         timezone: true,

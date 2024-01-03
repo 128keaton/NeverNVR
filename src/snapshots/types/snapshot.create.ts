@@ -29,7 +29,7 @@ export class SnapshotCreate {
     required: true,
   })
   @IsString()
-  cameraName: string;
+  cameraID: string;
 
   @ApiProperty({
     example: 'snapshot.jpeg',

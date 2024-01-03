@@ -45,6 +45,7 @@ export class SnapshotsGateway extends CommonGateway {
         id: event.snapshot.id,
         snapshot,
         cameraName: event.cameraName,
+        cameraID: event.cameraID,
       });
 
       if (!didEmit) this.logger.warn('Could not emit');
@@ -59,6 +60,7 @@ export class SnapshotsGateway extends CommonGateway {
         id: event.snapshot.id,
         snapshot,
         cameraName: event.cameraName,
+        cameraID: event.cameraID,
       });
     });
   }
@@ -91,7 +93,7 @@ export class SnapshotsGateway extends CommonGateway {
     request: {
       snapshot: Snapshot;
       id: string;
-      cameraName: string;
+      cameraID: string;
       gatewayID: string;
     },
   ) {
@@ -99,7 +101,7 @@ export class SnapshotsGateway extends CommonGateway {
       {
         ...request.snapshot,
         id: request.id,
-        cameraName: request.cameraName,
+        cameraID: request.cameraID,
         gatewayID: request.gatewayID,
       },
       false,

@@ -133,10 +133,10 @@ export class ClipsService {
     });
   }
 
-  async create(create: Clip, cameraName: string, emitLocal = true) {
+  async create(create: Clip, cameraID: string, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
-        name: cameraName,
+        id: cameraID,
       },
       select: {
         timezone: true,
@@ -159,7 +159,7 @@ export class ClipsService {
       analyticsJobID = await lastValueFrom(
         this.videoAnalyticsService.classifyVideoClip(
           create.fileName,
-          cameraName,
+          cameraID,
           gateway.s3Bucket,
         ),
       );
@@ -214,7 +214,8 @@ export class ClipsService {
       await this.clipQueue.add('outgoing', {
         eventType: 'created',
         clip,
-        cameraName,
+        cameraName: clip.camera.name,
+        cameraID: clip.cameraID,
       });
 
     this._clipEvents.next({

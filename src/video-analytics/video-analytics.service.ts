@@ -51,12 +51,12 @@ export class VideoAnalyticsService {
   /**
    * Returns a job ID to associate with a clip
    * @param fileName - Name of the clip
-   * @param cameraName - Name of the camera associated with the clip
+   * @param cameraID - Name of the camera associated with the clip
    * @param bucketName - S3 Bucket name
    */
-  classifyVideoClip(fileName: string, cameraName: string, bucketName: string) {
+  classifyVideoClip(fileName: string, cameraID: string, bucketName: string) {
     const url = `${this.apiURL}/jobs/create`;
-    const videoClipPath = AppHelpers.getFileKey(fileName, cameraName, '.mp4');
+    const videoClipPath = AppHelpers.getFileKey(fileName, cameraID, '.mp4');
 
     return this.httpService
       .post<JobResponse>(url, {
@@ -76,9 +76,9 @@ export class VideoAnalyticsService {
       );
   }
 
-  classifyImage(fileName: string, cameraName: string, bucketName: string) {
+  classifyImage(fileName: string, cameraID: string, bucketName: string) {
     const url = `${this.apiURL}/jobs/create`;
-    const imageClipPath = AppHelpers.getFileKey(fileName, cameraName, '.jpeg');
+    const imageClipPath = AppHelpers.getFileKey(fileName, cameraID, '.jpeg');
 
     return this.httpService
       .post<JobResponse>(url, {

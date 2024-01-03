@@ -44,10 +44,11 @@ export class ClipsGateway extends CommonGateway {
         clip: {
           ...clip,
           camera: {
-            name: event.cameraName,
+            id: event.cameraID,
           },
         },
         cameraName: event.cameraName,
+        cameraID: event.cameraID,
       });
 
       if (!didEmit) this.logger.warn('Could not emit');
@@ -62,6 +63,7 @@ export class ClipsGateway extends CommonGateway {
         id: event.clip.id,
         clip,
         cameraName: event.cameraName,
+        cameraID: event.cameraID,
       });
     });
   }
@@ -94,7 +96,7 @@ export class ClipsGateway extends CommonGateway {
     request: {
       clip: Clip;
       id: string;
-      cameraName: string;
+      cameraID: string;
       gatewayID: string;
     },
   ) {
@@ -105,7 +107,7 @@ export class ClipsGateway extends CommonGateway {
         id: request.id,
         gatewayID: request.gatewayID,
       },
-      request.cameraName,
+      request.cameraID,
       false,
     );
   }
@@ -116,7 +118,7 @@ export class ClipsGateway extends CommonGateway {
     request: {
       clip: Clip;
       id: string;
-      cameraName: string;
+      cameraID: string;
       gatewayID: string;
     },
   ) {
