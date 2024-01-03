@@ -17,7 +17,7 @@ export class VideoAnalyticsService {
 
   get headers() {
     return {
-      Authorization: `Bearer: ${this.apiToken}`,
+      Authorization: `Bearer ${this.apiToken}`,
     };
   }
 
