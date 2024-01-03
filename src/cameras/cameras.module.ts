@@ -7,6 +7,8 @@ import { CamerasController } from './cameras.controller';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
 import { GatewaysModule } from '../gateways/gateways.module';
+import { S3Module } from '../services/s3/s3.module';
+import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
 
 @Module({
   controllers: [CamerasController],
@@ -18,6 +20,8 @@ import { GatewaysModule } from '../gateways/gateways.module';
       name: 'cameras',
     }),
     GatewaysModule,
+    S3Module,
+    GatewayEventsModule,
   ],
   exports: [CamerasService, CamerasGateway],
 })

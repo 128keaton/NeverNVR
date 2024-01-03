@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Header, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  DefaultValuePipe,
+  Delete,
+  Get,
+  Header,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { ClipsService } from './clips.service';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ClipsResponse, ClipUrlResponse } from './type';
@@ -14,12 +22,102 @@ export class ClipsController {
     name: 'search',
     required: false,
   })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'start',
+    type: String,
+    enum: [
+      'fileName',
+      'id',
+      'timezone',
+      'fileSize',
+      'width',
+      'height',
+      'duration',
+      'format',
+      'start',
+      'end',
+      'cameraID',
+      'availableCloud',
+      'availableLocally',
+    ],
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: String,
+    enum: ['true', 'false', ''],
+  })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
   getClips(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('end')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
+    @Query('gatewayID') gatewayID?: string,
+    @Query('showAnalyzedOnly')
+    showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
   ) {
-    return this.clipsService.getClips(pageSize, pageNumber, search);
+    return this.clipsService.getClips(
+      undefined,
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
+      dateStart,
+      dateEnd,
+      gatewayID,
+      showAnalyzedOnly,
+      tags,
+    );
   }
 
   @Get('list/:cameraID')
@@ -29,8 +127,107 @@ export class ClipsController {
     description: 'The clips for the given camera ID',
     type: ClipsResponse,
   })
-  forCameraID(@Param('cameraID') cameraID: string) {
-    return this.clipsService.getClipsByCameraID(cameraID);
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'start',
+    type: String,
+    enum: [
+      'fileName',
+      'id',
+      'timezone',
+      'fileSize',
+      'width',
+      'height',
+      'duration',
+      'format',
+      'start',
+      'end',
+      'cameraID',
+      'availableCloud',
+      'availableLocally',
+    ],
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: String,
+    enum: ['true', 'false', ''],
+  })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
+  forCameraID(
+    @Param('cameraID') cameraID: string,
+    @Query('pageSize') pageSize = 40,
+    @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('end')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
+    @Query('search') search?: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
+    @Query('gatewayID') gatewayID?: string,
+    @Query('showAnalyzedOnly')
+    showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
+  ) {
+    return this.clipsService.getClips(
+      cameraID,
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
+      dateStart,
+      dateEnd,
+      gatewayID,
+      showAnalyzedOnly,
+      tags,
+    );
   }
 
   @Get(':clipID/video.mp4')
@@ -48,7 +245,18 @@ export class ClipsController {
     type: ClipUrlResponse,
   })
   getVideoDownloadURL(@Param('clipID') clipID: string) {
-    return this.clipsService.getClipDownloadURL(clipID);
+    return this.clipsService.getClipDownloadURL(clipID, false);
+  }
+
+  @Get(':clipID/analyzedURL')
+  @ApiOperation({ summary: 'Get a signed URL to download clip from S3' })
+  @ApiResponse({
+    status: 200,
+    description: 'The download URL for the clip from S3',
+    type: ClipUrlResponse,
+  })
+  getAnalyzedVideoDownloadURL(@Param('clipID') clipID: string) {
+    return this.clipsService.getClipDownloadURL(clipID, true);
   }
 
   @Get(':clipID')

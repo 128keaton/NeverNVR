@@ -3,9 +3,11 @@ import { Clip } from './clip.type';
 
 export class ClipsResponse {
   @ApiProperty({
-    type: Number,
+    type: Object,
   })
-  total: number;
+  meta: {
+    total: number;
+  };
 
   @ApiProperty({
     type: Clip,

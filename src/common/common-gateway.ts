@@ -22,9 +22,15 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const disconnectedClient = this.clients.find((client) => client.id);
 
     if (!!disconnectedClient) {
-      this.logger.verbose(
-        `Client with gatewayID ${disconnectedClient.gatewayID} has disconnected`,
-      );
+      if (!!disconnectedClient.gatewayID)
+        this.logger.verbose(
+          `Client with gatewayID ${disconnectedClient.gatewayID} has disconnected`,
+        );
+      else
+        this.logger.verbose(
+          `Client with ID ${disconnectedClient.id} has disconnected`,
+        );
+
       this.clients.filter((c) => c.id !== disconnectedClient.id);
     }
   }
@@ -45,25 +51,12 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.gatewayID = gatewayID;
   }
 
-  getGatewayClient(gatewayID: string) {
-    const gatewayClient = this.clients.find(
-      (client) => client.gatewayID === gatewayID,
-    );
-
-    if (!gatewayClient)
-      throw new Error(`Could not find a client for gateway ID ${gatewayID}`);
-    else
-      this.logger.verbose(
-        `Sending message to client with ID ${gatewayClient.id} and gatewayID of ${gatewayClient.gatewayID}`,
-      );
-
-    return gatewayClient;
+  getGatewayClients(gatewayID: string) {
+    return this.clients.filter((client) => client.gatewayID === gatewayID);
   }
 
   getWebClients() {
-    return  this.clients.filter(
-      (client) => client.gatewayID === undefined,
-    );
+    return this.clients.filter((client) => client.gatewayID === undefined);
   }
 
   getGatewayIDFromClientID(clientID: string) {

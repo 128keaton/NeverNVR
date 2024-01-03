@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsNumber, IsString } from 'class-validator';
 
 export class SnapshotCreate {
   @ApiProperty({
@@ -29,7 +29,7 @@ export class SnapshotCreate {
     required: true,
   })
   @IsString()
-  cameraName: string;
+  cameraID: string;
 
   @ApiProperty({
     example: 'snapshot.jpeg',

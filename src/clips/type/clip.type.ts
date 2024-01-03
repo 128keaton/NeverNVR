@@ -29,9 +29,6 @@ export class Clip {
   end?: Date;
 
   @ApiProperty()
-  processing: boolean;
-
-  @ApiProperty()
   availableLocally: boolean;
 
   @ApiProperty()
@@ -39,4 +36,19 @@ export class Clip {
 
   @ApiProperty()
   gatewayID: string;
+
+  @ApiProperty()
+  analyticsJobID?: string;
+
+  @ApiProperty()
+  analyzedFileName?: string;
+
+  @ApiProperty()
+  analyzed: boolean;
+
+  @ApiProperty()
+  primaryTag?: string;
+
+  @ApiProperty()
+  tags: string[];
 }

@@ -65,12 +65,6 @@ export class CameraCreate {
   snapshotInterval?: number;
 
   @ApiProperty({
-    example: 5123,
-  })
-  @IsNumber()
-  rtpPort: number;
-
-  @ApiProperty({
     required: false,
   })
   @IsOptional()
