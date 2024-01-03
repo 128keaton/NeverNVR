@@ -95,7 +95,7 @@ export class SnapshotsService {
       throw new HttpException('Could not find camera', HttpStatusCode.NotFound);
 
     const baseDirectory = upload.timestamp.split('T')[0];
-    const cloudFileName = `${baseDirectory}/${camera.id}/${file.originalname}`;
+    const cloudFileName = `${baseDirectory}/${camera.id}/snapshots/${file.originalname}`;
 
     const availableCloud = await this.s3Service.uploadFile(
       cloudFileName,
