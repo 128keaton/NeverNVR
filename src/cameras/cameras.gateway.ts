@@ -31,30 +31,30 @@ export class CamerasGateway extends CommonGateway {
 
   handleCameraEvent(event: CameraEvent, emitLocal = true) {
     const client = this.getGatewayClient(event.camera.gatewayID);
-
-    delete event.camera.name;
-
     const camera = {
       ...event.camera,
       ...event.update,
       ...event.create,
     };
 
-    delete camera.gatewayID;
-
     if (!!client && emitLocal) {
       this.logger.debug(
-        `Emitting event ${event.eventType} with data ${
-          event.camera.id
-        } and ${JSON.stringify(camera)}`,
+        `Emitting ${event.eventType} camera ${JSON.stringify(
+          camera,
+        )} event to ${client.id}`,
       );
 
       const didEmit = client.emit(event.eventType, {
-        id: event.camera.id,
-        camera: camera,
+        camera,
       });
 
-      if (!didEmit) this.logger.warn('Could not emit');
+      if (didEmit)
+        this.logger.debug(
+          `Emit ${event.eventType} camera ${JSON.stringify(camera)} event to ${
+            client.id
+          }`,
+        );
+      else this.logger.warn('Could not emit');
     } else if (!client && emitLocal)
       this.logger.error(`Client was null for ${event.camera.gatewayID}`);
 
