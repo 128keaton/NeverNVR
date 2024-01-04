@@ -51,6 +51,12 @@ export class GatewaysService {
         HttpStatus.NOT_FOUND,
       );
 
+    if (gateway.status === 'DISCONNECTED')
+      throw new HttpException(
+        `Gateway is disconnected ${gatewayID}`,
+        HttpStatus.BAD_REQUEST,
+      );
+
     return lastValueFrom(
       this.httpService
         .get<GatewayStats>(`${gateway.connectionURL}/api/stats`)
