@@ -37,7 +37,9 @@ export class VideoAnalyticsService {
     });
 
     this.videoAnalyticsSocket.on('connect_error', (err) => {
-      this.logger.error(err);
+      if (err['type'] !== 'TransportError') {
+        this.logger.error(err);
+      }
       setTimeout(() => {
         this.videoAnalyticsSocket.connect();
       }, 1000);
@@ -151,13 +153,13 @@ export class VideoAnalyticsService {
   }
 
   handleJobStarted(job: JobResponse) {
-    this.logger.verbose(`Analysis job started: ${job.id}`);
+    // this.logger.verbose(`Analysis job started: ${job.id}`);
     this.clipQueue.add('started-analyze', job.id, { delay: 1000 }).then();
     this.snapshotQueue.add('started-analyze', job.id, { delay: 1000 }).then();
   }
 
   handleJobFinished(job: JobResponse) {
-    this.logger.verbose(`Analysis job finished: ${job.id}`);
+    // this.logger.verbose(`Analysis job finished: ${job.id}`);
     job.files_processed.forEach((file) => {
       this.handleJobFileProcessed(file, job);
     });

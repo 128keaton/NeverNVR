@@ -36,12 +36,17 @@ export class GatewaysGateway extends CommonGateway {
         `Gateway '${gateway.id}' has ${connectedClients.length} client(s) connected (need 1)`,
       );
 
-      if (connectedClients.length === 0 && gateway.status !== 'DISCONNECTED') {
-        this.gatewaysService
-          .updateStatus(gateway.id, 'DISCONNECTED')
-          .then(() => {
-            this.logger.verbose(`Gateway '${gateway.id}' is now disconnected`);
-          });
+      if (connectedClients.length === 0) {
+        if (gateway.status !== 'DISCONNECTED') {
+          this.gatewaysService
+            .updateStatus(gateway.id, 'DISCONNECTED')
+            .then(() => {
+              this.logger.verbose(
+                `Gateway '${gateway.id}' is now disconnected`,
+              );
+            });
+        } else
+          this.logger.verbose(`Gateway '${gateway.id}' is still disconnected`);
       } else if (
         connectedClients.length > 0 &&
         gateway.status !== 'CONNECTED'
