@@ -26,10 +26,6 @@ export class ClipsGateway extends CommonGateway {
   }
 
   handleClipEvent(event: ClipEvent) {
-    const clip = {
-      ...event.clip,
-    };
-
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
 
@@ -37,7 +33,7 @@ export class ClipsGateway extends CommonGateway {
     webClients.forEach((client) => {
       client.emit(event.eventType, {
         id: event.clip.id,
-        clip,
+        clip: event.clip,
         cameraID: event.cameraID,
       });
     });

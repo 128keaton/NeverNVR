@@ -6,7 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { CommonGateway } from '../common/common-gateway';
-import { GatewayDiskSpace, GatewayStats } from './types';
+import { GatewayDiskSpace, GatewayEvent, GatewayStats } from './types';
 import { GatewaysService } from './gateways.service';
 import { Interval } from '@nestjs/schedule';
 
@@ -22,6 +22,23 @@ export class GatewaysGateway extends CommonGateway {
     setTimeout(() => {
       this.checkForGateways().then();
     }, 5000);
+
+    this.gatewaysService.gatewayEvents.subscribe((event) => {
+      this.handleGatewayEvent(event);
+    });
+  }
+
+  private handleGatewayEvent(event: GatewayEvent) {
+    // Get all UI clients (i.e. non gateway clients)
+    const webClients = this.getWebClients();
+
+    // Send the UI clients the same update
+    webClients.forEach((client) => {
+      client.emit(event.eventType, {
+        id: event.id,
+        gateway: event.gateway,
+      });
+    });
   }
 
   @Interval(1000 * 60)

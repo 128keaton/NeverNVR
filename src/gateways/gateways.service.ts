@@ -2,15 +2,23 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import {
   GatewayCreate,
-  GatewayDiskSpace, GatewayStats,
+  GatewayDiskSpace,
+  GatewayEvent,
+  GatewayStats,
   GatewayUpdate,
 } from './types';
 import { ConnectionStatus } from '@prisma/client';
-import { lastValueFrom, map } from 'rxjs';
+import { lastValueFrom, map, Subject } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class GatewaysService {
+  private _gatewayEvents = new Subject<GatewayEvent>();
+
+  get gatewayEvents() {
+    return this._gatewayEvents.asObservable();
+  }
+
   constructor(
     private prismaService: PrismaService,
     private httpService: HttpService,
