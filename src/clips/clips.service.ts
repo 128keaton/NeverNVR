@@ -42,13 +42,15 @@ export class ClipsService {
 
     for (const clip of clips) {
       const now = new Date();
-      const FIVE_MIN = 5 * 60 * 1000;
+      const FIVE_MINUTES = 5 * 60 * 1000;
+      const FIVE_HOURS = 5 * 60 * 1000 * 60;
 
       if (!clip.analyzeStart) {
         this.logger.debug('No analyze start on clip');
         await this.update(clip.id, { analyzeStart: new Date() });
       } else if (
-        now.getDate() - new Date(clip.analyzeStart).getDate() > FIVE_MIN &&
+        now.getDate() - new Date(clip.analyzeStart).getDate() > FIVE_MINUTES &&
+        now.getDate() - new Date(clip.analyzeStart).getDate() < FIVE_HOURS &&
         !!clip.analyticsJobID
       ) {
         this.logger.debug('Checking job status');
@@ -67,6 +69,17 @@ export class ClipsService {
         } else if (job.files_processed.includes(clip.fileName)) {
           this.videoAnalyticsService.handleJobFileProcessed(clip.fileName, job);
         }
+      } else if (
+        now.getDate() - new Date(clip.analyzeStart).getDate() >= FIVE_HOURS &&
+        !!clip.analyticsJobID
+      ) {
+        this.logger.warn('Job has gone one for far too long');
+        await this.update(
+          clip.id,
+          { analyzing: false, analyzeEnd: new Date() },
+          clip.cameraID,
+          clip.gatewayID,
+        );
       }
     }
   }
