@@ -36,6 +36,8 @@ export class ClipsService {
       },
     });
 
+    this.logger.verbose('Updating all clips that are being analyzed');
+
     for (const clip of clips) {
       const now = new Date();
       const FIVE_MIN = 5 * 60 * 1000;
