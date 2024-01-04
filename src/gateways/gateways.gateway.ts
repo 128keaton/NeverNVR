@@ -8,6 +8,7 @@ import { Socket } from 'socket.io';
 import { CommonGateway } from '../common/common-gateway';
 import { GatewayDiskSpace, GatewayStats } from './types';
 import { GatewaysService } from './gateways.service';
+import { Interval } from '@nestjs/schedule';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -16,6 +17,28 @@ import { GatewaysService } from './gateways.service';
 export class GatewaysGateway extends CommonGateway {
   constructor(override gatewaysService: GatewaysService) {
     super(gatewaysService);
+  }
+
+  @Interval(1000 * 60)
+  async checkForGateways() {
+    this.logger.verbose('Checking for connected gateways');
+
+    const gateways = await this.gatewaysService
+      .getMany()
+      .then((response) => response.data);
+
+    gateways.forEach((gateway) => {
+      const connectedClients = this.getGatewayClients(gateway.id);
+
+      if (connectedClients.length === 0 && gateway.status !== 'DISCONNECTED') {
+        return this.gatewaysService.updateStatus(gateway.id, 'DISCONNECTED');
+      } else if (
+        connectedClients.length > 0 &&
+        gateway.status !== 'CONNECTED'
+      ) {
+        return this.gatewaysService.updateStatus(gateway.id, 'CONNECTED');
+      }
+    });
   }
 
   @SubscribeMessage('response')

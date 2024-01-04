@@ -183,6 +183,12 @@ export class CamerasService {
         HttpStatus.NOT_FOUND,
       );
 
+    if (gateway.status === 'DISCONNECTED')
+      throw new HttpException(
+        `Gateway is disconnected ${camera.gatewayID}`,
+        HttpStatus.BAD_REQUEST,
+      );
+
     return lastValueFrom(
       this.httpService
         .get(`${gateway.connectionURL}/api/cameras/${id}/logs`)
@@ -367,10 +373,16 @@ export class CamerasService {
           },
         },
       })
-      .catch((err) => {
-        this.logger.error(
-          `Could not update camera with ID ${id}: ${JSON.stringify(err)}`,
-        );
+      .catch((err: { name: string; code: string }) => {
+        if (err.code !== 'P2025')
+          this.logger.error(
+            `Could not update camera with ID ${id}: ${JSON.stringify(err)}`,
+          );
+        else
+          this.logger.warn(
+            `Not able to update camera with ID ${id} because it does not exist on this gateway`,
+          );
+
         return null;
       });
 

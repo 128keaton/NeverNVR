@@ -9,8 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserRequest } from './create-user.request';
-import { UpdateUserRequest } from './update-user.request';
+import { CreateUserRequest, UpdateUserRequest } from './requests';
 
 @Controller('')
 export class UsersController {
