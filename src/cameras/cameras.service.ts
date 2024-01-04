@@ -313,7 +313,7 @@ export class CamerasService {
           );
         else
           this.logger.warn(
-            `Not able to update camera with ID ${id} because it does not exist on this gateway`,
+            `Not able to update camera with ID ${id} because it does not exist on this NVR`,
           );
 
         return null;

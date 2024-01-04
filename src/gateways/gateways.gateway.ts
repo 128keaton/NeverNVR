@@ -21,24 +21,35 @@ export class GatewaysGateway extends CommonGateway {
 
   @Interval(1000 * 60)
   async checkForGateways() {
-    this.logger.verbose('Checking for connected gateways');
-
     const gateways = await this.gatewaysService
       .getMany()
       .then((response) => response.data);
 
-    gateways.forEach((gateway) => {
+    this.logger.verbose(
+      `We have ${gateways.length} gateway(s) to check for connection`,
+    );
+
+    for (const gateway of gateways) {
       const connectedClients = this.getGatewayClients(gateway.id);
 
+      this.logger.verbose(
+        `Gateway '${gateway.id}' has ${connectedClients.length} client(s) connected (need 1)`,
+      );
+
       if (connectedClients.length === 0 && gateway.status !== 'DISCONNECTED') {
-        return this.gatewaysService.updateStatus(gateway.id, 'DISCONNECTED');
+        this.gatewaysService
+          .updateStatus(gateway.id, 'DISCONNECTED')
+          .then(() => {
+            this.logger.verbose(`Gateway '${gateway.id}' is now disconnected`);
+          });
       } else if (
         connectedClients.length > 0 &&
         gateway.status !== 'CONNECTED'
       ) {
-        return this.gatewaysService.updateStatus(gateway.id, 'CONNECTED');
+        await this.gatewaysService.updateStatus(gateway.id, 'CONNECTED');
+        this.logger.verbose(`Gateway '${gateway.id}' is now connected`);
       }
-    });
+    }
   }
 
   @SubscribeMessage('response')
