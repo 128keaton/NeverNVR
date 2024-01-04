@@ -17,6 +17,11 @@ import { Interval } from '@nestjs/schedule';
 export class GatewaysGateway extends CommonGateway {
   constructor(override gatewaysService: GatewaysService) {
     super(gatewaysService);
+
+    // Do an initial check 5 seconds after we start up
+    setTimeout(() => {
+      this.checkForGateways().then();
+    }, 5000);
   }
 
   @Interval(1000 * 60)
@@ -24,6 +29,8 @@ export class GatewaysGateway extends CommonGateway {
     const gateways = await this.gatewaysService
       .getMany()
       .then((response) => response.data);
+
+    if (gateways.length === 0) return;
 
     this.logger.verbose(
       `We have ${gateways.length} gateway(s) to check for connection`,
@@ -46,7 +53,7 @@ export class GatewaysGateway extends CommonGateway {
               );
             });
         } else
-          this.logger.verbose(`Gateway '${gateway.id}' is still disconnected`);
+          this.logger.warn(`Gateway '${gateway.id}' is still disconnected`);
       } else if (
         connectedClients.length > 0 &&
         gateway.status !== 'CONNECTED'
