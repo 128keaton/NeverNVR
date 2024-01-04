@@ -28,7 +28,7 @@ export class ClipsService {
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
 
-  @Interval(15000)
+  @Interval(25000)
   async updateAnalyzingClips() {
     const clips = await this.prismaService.clip.findMany({
       where: {
@@ -52,7 +52,8 @@ export class ClipsService {
           this.videoAnalyticsService.checkJobStatus(clip.analyticsJobID),
         );
 
-        if (job.stalled) {
+        this.logger.verbose(job);
+        if (job.stalled || job.status === 'DONE' || job.status === 'ERROR') {
           await this.update(
             clip.id,
             { analyzing: false, analyzeEnd: new Date() },
