@@ -10,7 +10,7 @@ import { AppHelpers } from '../app.helpers';
 import { HttpStatusCode } from 'axios';
 import { lastValueFrom, Subject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Interval } from '@nestjs/schedule';
 
 @Injectable()
 export class ClipsService {
@@ -28,7 +28,7 @@ export class ClipsService {
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Interval(15000)
   async updateAnalyzingClips() {
     const clips = await this.prismaService.clip.findMany({
       where: {
