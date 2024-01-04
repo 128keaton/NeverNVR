@@ -28,7 +28,7 @@ export class ClipsService {
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
 
-  @Interval(60 * 1000)
+  @Interval(120 * 1000)
   async updateAnalyzingClips() {
     const clips = await this.prismaService.clip.findMany({
       where: {
