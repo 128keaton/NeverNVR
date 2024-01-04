@@ -61,16 +61,15 @@ export class GatewaysGateway extends CommonGateway {
       );
 
       if (connectedClients.length === 0) {
-        if (gateway.status !== 'DISCONNECTED') {
-          this.gatewaysService
-            .updateStatus(gateway.id, 'DISCONNECTED')
-            .then(() => {
-              this.logger.verbose(
-                `Gateway '${gateway.id}' is now disconnected`,
-              );
-            });
-        } else
+        if (gateway.status === 'DISCONNECTED')
           this.logger.warn(`Gateway '${gateway.id}' is still disconnected`);
+
+        // Update anyway just in case cameras did not get updated
+        this.gatewaysService
+          .updateStatus(gateway.id, 'DISCONNECTED')
+          .then(() => {
+            this.logger.verbose(`Gateway '${gateway.id}' is now disconnected`);
+          });
       } else if (
         connectedClients.length > 0 &&
         gateway.status !== 'CONNECTED'
