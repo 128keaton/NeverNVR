@@ -10,6 +10,9 @@ import {
 import { ConnectionStatus } from '@prisma/client';
 import { lastValueFrom, map, Subject } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { CameraEvent } from '../cameras/types';
 
 @Injectable()
 export class GatewaysService {
@@ -22,6 +25,7 @@ export class GatewaysService {
   constructor(
     private prismaService: PrismaService,
     private httpService: HttpService,
+    @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,
   ) {}
 
   create(data: GatewayCreate) {
@@ -110,8 +114,8 @@ export class GatewaysService {
     });
   }
 
-  updateStatus(id: string, status: ConnectionStatus) {
-    return this.prismaService.gateway.update({
+  async updateStatus(id: string, status: ConnectionStatus) {
+    const gateway = await this.prismaService.gateway.update({
       where: {
         id,
       },
@@ -120,5 +124,60 @@ export class GatewaysService {
         lastConnection: status === 'CONNECTED' ? new Date() : undefined,
       },
     });
+
+    const emitCameras = async (
+      newStatus: 'CONNECTED' | 'DISCONNECTED' | 'UNKNOWN',
+    ) => {
+      const camerasToEmit = await this.prismaService.camera.findMany({
+        where: {
+          status: {
+            not: newStatus,
+          },
+        },
+      });
+
+      camerasToEmit.forEach((camera) =>
+        this.camerasQueue.add('outgoing', {
+          camera,
+          eventType: 'updated',
+        }),
+      );
+    };
+
+    switch (gateway.status) {
+      case 'DISCONNECTED':
+        await this.prismaService.camera.updateMany({
+          where: {
+            gatewayID: gateway.id,
+            status: {
+              not: 'DISCONNECTED',
+            },
+          },
+          data: {
+            status: 'DISCONNECTED',
+          },
+        });
+        await emitCameras('DISCONNECTED');
+        break;
+
+      case 'UNKNOWN':
+        await this.prismaService.camera.updateMany({
+          where: {
+            gatewayID: gateway.id,
+            status: {
+              not: 'DISCONNECTED',
+            },
+          },
+          data: {
+            status: 'DISCONNECTED',
+          },
+        });
+        await emitCameras('DISCONNECTED');
+        break;
+      default:
+        break;
+    }
+
+    return gateway;
   }
 }
