@@ -343,29 +343,36 @@ export class CamerasService {
   }
 
   async update(id: string, update: CameraUpdate, emit = true) {
-    const camera = await this.prismaService.camera.update({
-      where: {
-        id,
-      },
-      data: {
-        stream: update.stream,
-        record: update.record,
-        status: !!update.ipAddress ? 'UNKNOWN' : update.status,
-        name: update.name,
-        deleteClipAfter: update.deleteClipAfter,
-        deleteSnapshotAfter: update.deleteSnapshotAfter,
-        synchronized: !emit,
-        lastConnection: update.lastConnection,
-      },
-      include: {
-        gateway: {
-          select: {
-            name: true,
-            connectionURL: true,
+    const camera = await this.prismaService.camera
+      .update({
+        where: {
+          id,
+        },
+        data: {
+          stream: update.stream,
+          record: update.record,
+          status: !!update.ipAddress ? 'UNKNOWN' : update.status,
+          name: update.name,
+          deleteClipAfter: update.deleteClipAfter,
+          deleteSnapshotAfter: update.deleteSnapshotAfter,
+          synchronized: !emit,
+          lastConnection: update.lastConnection,
+        },
+        include: {
+          gateway: {
+            select: {
+              name: true,
+              connectionURL: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Could not update camera with ID ${id}: ${JSON.stringify(err)}`,
+        );
+        return null;
+      });
 
     if (!camera) return camera;
 

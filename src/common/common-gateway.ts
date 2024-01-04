@@ -43,6 +43,11 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
+    if (!gatewayID) {
+      this.logger.error(`No gateway ID sent with request ${clientID}`);
+      return;
+    }
+
     const gateway = await this.gatewaysService.get(gatewayID);
 
     if (!!gateway)
