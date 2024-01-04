@@ -66,17 +66,7 @@ export class CamerasService {
         HttpStatus.NOT_FOUND,
       );
 
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -163,31 +153,8 @@ export class CamerasService {
   }
 
   async getLogOutput(id: string) {
-    const camera = await this.get(id);
-
-    if (!camera)
-      throw new HttpException(
-        `Could not find camera with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    if (gateway.status === 'DISCONNECTED')
-      throw new HttpException(
-        `Gateway is disconnected ${camera.gatewayID}`,
-        HttpStatus.BAD_REQUEST,
-      );
+    const camera = await this.getValidCamera(id);
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -197,25 +164,8 @@ export class CamerasService {
   }
 
   async restartRecording(id: string) {
-    const camera = await this.get(id);
-
-    if (!camera)
-      throw new HttpException(
-        `Could not find camera with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const camera = await this.getValidCamera(id);
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -227,25 +177,8 @@ export class CamerasService {
   }
 
   async restartStreaming(id: string) {
-    const camera = await this.get(id);
-
-    if (!camera)
-      throw new HttpException(
-        `Could not find camera with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const camera = await this.getValidCamera(id);
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -473,5 +406,39 @@ export class CamerasService {
         synchronized,
       },
     });
+  }
+
+  private async getValidGateway(gatewayID: string) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id: gatewayID,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Could not find gateway with ID ${gatewayID}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    if (gateway.status === 'DISCONNECTED')
+      throw new HttpException(
+        `Gateway is disconnected ${gatewayID}`,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    return gateway;
+  }
+
+  private async getValidCamera(id: string) {
+    const camera = await this.get(id);
+
+    if (!camera)
+      throw new HttpException(
+        `Could not find camera with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    return camera;
   }
 }
