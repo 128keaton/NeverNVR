@@ -178,6 +178,12 @@ export class GatewaysService {
         break;
     }
 
+    this._gatewayEvents.next({
+      eventType: 'updated',
+      gateway,
+      id: gateway.id,
+    });
+
     return gateway;
   }
 }
