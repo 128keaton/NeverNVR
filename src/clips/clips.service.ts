@@ -71,7 +71,6 @@ export class ClipsService {
           this.videoAnalyticsService.handleJobFileProcessed(clip.fileName, job);
         }
       } else if (
-        now.getDate() - new Date(clip.analyzeStart).getDate() >= FIVE_HOURS &&
         !!clip.analyticsJobID
       ) {
         this.logger.warn('Job has gone one for far too long');
