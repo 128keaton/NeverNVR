@@ -246,6 +246,10 @@ export class UsersService {
     return { success: didSend };
   }
 
+  getUserCount() {
+    return this.prismaService.user.count();
+  }
+
   getUsers(request: {
     pageSize?: number;
     pageNumber?: number;

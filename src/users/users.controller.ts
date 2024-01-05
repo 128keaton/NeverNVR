@@ -30,6 +30,11 @@ export class UsersController {
     return this.usersService.getUsers({ pageSize, pageNumber, search });
   }
 
+  @Get('count')
+  countUsers() {
+    return this.usersService.getUserCount();
+  }
+
   @Get(':userID')
   user(@Param('userID') id: string) {
     return this.usersService.findOneByID(id);
