@@ -47,6 +47,12 @@ export class VideoAnalyticsService {
       this.logger.verbose('Connected to Video Analytics API over WebSocket');
     });
 
+    this.videoAnalyticsSocket.on('disconnect', () => {
+      this.logger.verbose(
+        'Disconnected from Video Analytics API over WebSocket',
+      );
+    });
+
     this.videoAnalyticsSocket.on('job_finished', (job) => {
       this.handleJobFinished(job);
     });
