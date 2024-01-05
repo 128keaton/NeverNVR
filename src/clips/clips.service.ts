@@ -45,6 +45,7 @@ export class ClipsService {
       const FIVE_MINUTES = 5 * 60 * 1000;
       const FIVE_HOURS = 5 * 60 * 1000 * 60;
 
+      this.logger.verbose(`Clip ${clip.id}`);
       if (!clip.analyzeStart) {
         this.logger.debug('No analyze start on clip');
         await this.update(clip.id, { analyzeStart: new Date() });
