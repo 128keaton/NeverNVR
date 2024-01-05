@@ -37,9 +37,7 @@ export class VideoAnalyticsService {
     });
 
     this.videoAnalyticsSocket.on('connect_error', (err) => {
-      if (err['type'] !== 'TransportError') {
-        this.logger.error(err);
-      }
+      this.logger.error(err);
       setTimeout(() => {
         this.videoAnalyticsSocket.connect();
       }, 1000);
