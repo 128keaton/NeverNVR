@@ -18,11 +18,6 @@ export class GatewaysGateway extends CommonGateway {
   constructor(override gatewaysService: GatewaysService) {
     super(gatewaysService);
 
-    // Do an initial check 5 seconds after we start up
-    setTimeout(() => {
-      this.checkForGateways().then();
-    }, 5000);
-
     this.gatewaysService.gatewayEvents.subscribe((event) => {
       this.handleGatewayEvent(event);
     });
