@@ -36,7 +36,7 @@ export class GatewaysGateway extends CommonGateway {
     });
   }
 
-  @Interval(1000 * 60)
+  @Interval(1000 * 30)
   async checkForGateways() {
     const gateways = await this.gatewaysService
       .getMany()
