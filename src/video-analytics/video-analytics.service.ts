@@ -34,6 +34,8 @@ export class VideoAnalyticsService {
       autoConnect: true,
       transports: ['websocket'],
       path: '/socket',
+      reconnection: true,
+      reconnectionDelay: 1000,
     });
 
     this.videoAnalyticsSocket.on('connect_error', (err) => {

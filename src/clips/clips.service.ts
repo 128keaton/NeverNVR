@@ -70,9 +70,7 @@ export class ClipsService {
         } else if (job.files_processed.includes(clip.fileName)) {
           this.videoAnalyticsService.handleJobFileProcessed(clip.fileName, job);
         }
-      } else if (
-        !!clip.analyticsJobID
-      ) {
+      } else if (!!clip.analyticsJobID) {
         this.logger.warn('Job has gone one for far too long');
         await this.update(
           clip.id,
