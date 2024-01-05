@@ -39,6 +39,13 @@ export class GatewaysService {
       where: {
         id,
       },
+      include: {
+        cameras: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
   }
 
