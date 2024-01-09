@@ -1,4 +1,4 @@
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   Body,
   Controller,
@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CamerasService } from './cameras.service';
 import {
@@ -95,14 +96,21 @@ export class CamerasController {
   }
 
   @Get()
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
   @ApiOperation({ summary: 'Get all cameras' })
   @ApiResponse({
     status: 200,
     description: 'The found records',
     type: CamerasResponse,
   })
-  getMany() {
-    return this.camerasService.getMany();
+  getMany(@Query('gatewayID') gatewayID?: string) {
+    return this.camerasService.getMany({
+      gatewayID,
+    });
   }
 
   @Delete(':id')

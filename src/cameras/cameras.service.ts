@@ -189,8 +189,20 @@ export class CamerasService {
     );
   }
 
-  async getMany() {
+  async getMany(request?: { gatewayID?: string }) {
+    let where: any = {};
+
+    if (!!request) {
+      if (request.gatewayID) {
+        where = {
+          ...where,
+          gatewayID: request.gatewayID,
+        };
+      }
+    }
+
     const cameras = await this.prismaService.camera.findMany({
+      where,
       include: {
         gateway: {
           select: {
