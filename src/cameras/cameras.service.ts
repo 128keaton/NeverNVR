@@ -10,7 +10,7 @@ import {
   CameraSnapshotsResponse,
 } from './types';
 import { HttpService } from '@nestjs/axios';
-import { lastValueFrom, map, Subject } from 'rxjs';
+import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { ConnectionStatus } from '@prisma/client';
 import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
@@ -18,7 +18,7 @@ import { HttpStatusCode } from 'axios';
 
 @Injectable()
 export class CamerasService {
-  private _cameraEvents = new Subject<CameraEvent>();
+  private _cameraEvents = new ReplaySubject<CameraEvent>();
   private logger = new Logger(CamerasService.name);
 
   get cameraEvents() {

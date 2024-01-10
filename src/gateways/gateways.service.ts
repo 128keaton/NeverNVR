@@ -8,7 +8,7 @@ import {
   GatewayUpdate,
 } from './types';
 import { ConnectionStatus } from '@prisma/client';
-import { lastValueFrom, map, Subject } from 'rxjs';
+import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -16,7 +16,7 @@ import { CameraEvent } from '../cameras/types';
 
 @Injectable()
 export class GatewaysService {
-  private _gatewayEvents = new Subject<GatewayEvent>();
+  private _gatewayEvents = new ReplaySubject<GatewayEvent>();
 
   get gatewayEvents() {
     return this._gatewayEvents.asObservable();

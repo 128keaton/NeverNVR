@@ -8,13 +8,13 @@ import { ClipFormat, Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { HttpStatusCode } from 'axios';
-import { lastValueFrom, Subject } from 'rxjs';
+import { lastValueFrom, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
 
 @Injectable()
 export class ClipsService {
-  private _clipEvents = new Subject<ClipEvent>();
+  private _clipEvents = new ReplaySubject<ClipEvent>();
   private logger = new Logger(ClipsService.name);
 
   get clipEvents() {
@@ -466,13 +466,12 @@ export class ClipsService {
     );
   }
 
-  async getClipsList(cameraID: string, clipIDs: string[]) {
+  async getClipsList(clipIDs: string[]) {
     return this.prismaService.clip.findMany({
       where: {
         id: {
           in: clipIDs,
         },
-        cameraID,
       },
       include: {
         gateway: {

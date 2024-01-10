@@ -11,28 +11,37 @@ export class TimelineService {
   ) {}
 
   async getTimeline(
-    cameraID: string,
     clipIDs: string[],
     snapshotIDs: string[],
-  ): Promise<Timeline> {
-    const clips = await this.clipsService.getClipsList(cameraID, clipIDs);
-    let items: TimelineItem[] = [];
+  ): Promise<Timeline[]> {
+    const timeline: Timeline[] = [];
+    const clips = await this.clipsService.getClipsList(clipIDs);
+    const cameras: { name?: string; id: string }[] = [];
+    const items: { [key: string]: TimelineItem[] } = {};
 
-    let snapshots = await this.snapshotsService.getSnapshotsList(
-      cameraID,
-      snapshotIDs,
-    );
+    let snapshots = await this.snapshotsService.getSnapshotsList(snapshotIDs);
 
     for (const clip of clips) {
       const clipURL = await this.clipsService
         .getClipDownloadURL(clip.id, clip.analyzed)
         .then((result) => result.url);
 
+      let camera = cameras.find((camera) => camera.id === clip.cameraID);
+
+      if (!camera) {
+        cameras.push(clip.camera);
+        camera = clip.camera;
+      }
+
       const item = new TimelineItem(clip.start, clip.end);
       item.clipURL = clipURL;
 
       const snapshot = snapshots.find((snap) => {
-        return snap.timestamp >= clip.start && snap.timestamp <= clip.end;
+        return (
+          snap.timestamp >= clip.start &&
+          snap.timestamp <= clip.end &&
+          snap.cameraID === clip.cameraID
+        );
       });
 
       if (!!snapshot) {
@@ -43,7 +52,8 @@ export class TimelineService {
         snapshots = snapshots.filter((snap) => snap.id !== snapshot.id);
       }
 
-      items.push(item);
+      if (!!items.hasOwnProperty(camera.id)) items[camera.id].push(item);
+      else items[camera.id] = [item];
     }
 
     // Iterate through remaining snapshots
@@ -53,21 +63,37 @@ export class TimelineService {
         .getSnapshotDownloadURL(snapshot.id, snapshot.analyzed)
         .then((result) => result.url);
 
-      items.push(item);
+      let camera = cameras.find((camera) => camera.id === snapshot.cameraID);
+
+      if (!camera) {
+        cameras.push(snapshot.camera);
+        camera = snapshot.camera;
+      }
+
+      if (!!items.hasOwnProperty(camera.id)) items[camera.id].push(item);
+      else items[camera.id] = [item];
     }
 
-    items = items.sort((a, b) => {
-      return a.start.getTime() - b.start.getTime();
+    Object.keys(items).forEach((key) => {
+      const timelineItems = items[key];
+
+      items[key] = timelineItems.sort((a, b) => {
+        return a.start.getTime() - b.start.getTime();
+      });
+
+      const start = timelineItems[0].start;
+      const end = timelineItems[timelineItems.length - 1].end;
+      const camera = cameras.find((cam) => cam.id === key);
+
+      if (!!camera)
+        timeline.push({
+          start,
+          end,
+          items: timelineItems,
+          camera,
+        });
     });
 
-    const start = items[0].start;
-    const end = items[items.length - 1].end;
-
-    return {
-      start,
-      end,
-      items,
-      cameraID,
-    };
+    return timeline;
   }
 }

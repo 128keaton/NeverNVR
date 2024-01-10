@@ -9,7 +9,10 @@ export class Timeline {
   items: TimelineItem[];
 
   @ApiProperty()
-  cameraID: string;
+  camera: {
+    name?: string;
+    id: string;
+  };
 
   @ApiProperty({
     type: Date,

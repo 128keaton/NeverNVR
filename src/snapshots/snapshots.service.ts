@@ -1,10 +1,6 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import {
-  SnapshotCreate,
-  SnapshotEvent,
-  SnapshotUpload,
-} from './types';
+import { SnapshotCreate, SnapshotEvent, SnapshotUpload } from './types';
 import { HttpStatusCode } from 'axios';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -12,14 +8,14 @@ import { createPaginator } from 'prisma-pagination';
 import { Prisma, Snapshot } from '@prisma/client';
 import { S3Service } from '../services/s3/s3.service';
 import { AppHelpers } from '../app.helpers';
-import { lastValueFrom, Subject } from 'rxjs';
+import { lastValueFrom, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SnapshotsService {
-  private _snapshotEvents = new Subject<SnapshotEvent>();
+  private _snapshotEvents = new ReplaySubject<SnapshotEvent>();
   private logger = new Logger(SnapshotsService.name);
 
   get snapshotEvents() {
@@ -67,13 +63,12 @@ export class SnapshotsService {
     }
   }
 
-  async getSnapshotsList(cameraID: string, snapshotIDs: string[]) {
+  async getSnapshotsList(snapshotIDs: string[]) {
     return this.prismaService.snapshot.findMany({
       where: {
         id: {
           in: snapshotIDs,
         },
-        cameraID,
       },
       include: {
         gateway: {

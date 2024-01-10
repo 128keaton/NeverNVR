@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
 import { TimelineService } from './timeline.service';
 import { TimelineRequest } from './requests';
@@ -8,19 +8,15 @@ import { TimelineRequest } from './requests';
 export class TimelineController {
   constructor(private timelineService: TimelineService) {}
 
-  @Post(':cameraID')
+  @Post('')
   @ApiParam({
     name: 'cameraID',
   })
   @ApiBody({
     type: TimelineRequest,
   })
-  createTimeline(
-    @Param('cameraID') cameraID: string,
-    @Body() request: TimelineRequest,
-  ) {
+  createTimeline(@Body() request: TimelineRequest) {
     return this.timelineService.getTimeline(
-      cameraID,
       request.clipIDs,
       request.snapshotIDs,
     );
