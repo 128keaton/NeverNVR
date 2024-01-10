@@ -1,4 +1,5 @@
 import { IsOptional, IsString } from 'class-validator';
+import { Role } from '@prisma/client';
 
 export class CreateUserRequest {
   @IsString()
@@ -13,4 +14,7 @@ export class CreateUserRequest {
   @IsString()
   @IsOptional()
   password?: string;
+
+  @IsOptional()
+  roles: Role[];
 }

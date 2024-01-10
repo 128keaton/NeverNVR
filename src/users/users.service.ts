@@ -6,7 +6,7 @@ import {
 } from '../services/novu/services';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, Role, User } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 
 @Injectable()
@@ -66,6 +66,7 @@ export class UsersService {
     password?: string;
     firstName: string;
     lastName: string;
+    roles: Role[];
   }) {
     let hashedPassword;
 
@@ -83,12 +84,20 @@ export class UsersService {
     const randomToken = Math.random().toString(36).slice(-8);
     const resetToken = await bcrypt.hash(randomToken, 10);
 
+    // const roleEnums: Role[] = [];
+    //
+    // for ( let role of roles ) {
+    //
+    //   if ( role === '')
+    // }
+
     const user = await this.prismaService.extended.user.create({
       data: {
         email: request.email,
         password: hashedPassword,
         firstName: request.firstName,
         lastName: request.lastName,
+        roles: request.roles,
         passwordResetToken: resetToken,
       },
     });
@@ -173,6 +182,7 @@ export class UsersService {
         passwordResetToken: true,
         createdAt: true,
         lastLogin: true,
+        roles: true,
       },
     });
   }
@@ -197,6 +207,7 @@ export class UsersService {
         passwordResetToken: true,
         createdAt: true,
         lastLogin: true,
+        roles: true,
       },
     });
   }
