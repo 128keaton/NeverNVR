@@ -46,6 +46,10 @@ export class S3Service {
     bucket: string,
     file: Express.Multer.File,
   ) {
+    this.logger.log(
+      `Uploading file named: ${file.originalname} with mimetype: ${file.mimetype}`,
+    );
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: filePath,
