@@ -1,10 +1,21 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { SingleStatCount, SizeStat, Stats } from './types';
 import { StatsService } from './stats.service';
-import { ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('stats')
 @ApiTags('Stats')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class StatsController {
   constructor(private statsService: StatsService) {}
 

@@ -6,15 +6,27 @@ import {
   Header,
   Param,
   Query,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ClipsService } from './clips.service';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ClipsResponse, ClipUrlResponse } from './type';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('clips')
 @ApiTags('Clips')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class ClipsController {
   constructor(private clipsService: ClipsService) {}
 

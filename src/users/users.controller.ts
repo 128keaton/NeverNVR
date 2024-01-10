@@ -7,11 +7,18 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserRequest, UpdateUserRequest } from './requests';
+import { ApiBearerAuth, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 
-@Controller('')
+@Controller('users')
+@ApiTags('Users')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
@@ -21,6 +28,18 @@ export class UsersController {
   }
 
   @Get('')
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
   users(
     @Query('pageSize') pageSize: number,
     @Query('pageNumber') pageNumber: number,

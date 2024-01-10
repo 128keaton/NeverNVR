@@ -36,16 +36,7 @@ import { TimelineModule } from './timeline/timeline.module';
     SnapshotsModule,
     UsersModule,
     ClipsModule,
-    RouterModule.register([
-      {
-        path: 'users',
-        module: UsersModule,
-      },
-      {
-        path: 'auth',
-        module: AuthModule,
-      },
-    ]),
+    UsersModule,
     StatsModule,
     VideoAnalyticsModule,
     GatewayEventsModule,
