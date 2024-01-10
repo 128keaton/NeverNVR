@@ -108,7 +108,7 @@ export class UsersService {
       request.lastName,
     );
 
-    if (!request.roles.includes(Role.ADMIN)) {
+    if (!!request.roles && !request.roles.includes(Role.ADMIN)) {
       await this.sendSetupEmail(user, resetToken);
     }
 
