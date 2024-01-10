@@ -9,6 +9,11 @@ import { BullModule } from '@nestjs/bull';
 import { S3Module } from '../services/s3/s3.module';
 import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
 import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import type { RedisClientOptions } from 'redis';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as redisStore from 'cache-manager-redis-store';
+import { StoreConfig } from 'cache-manager';
 
 @Module({
   providers: [SnapshotsService, SnapshotsGateway, SnapshotsQueue],
@@ -20,6 +25,17 @@ import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
     PrismaModule,
     GatewaysModule,
     GatewayEventsModule,
+    CacheModule.registerAsync<RedisClientOptions>({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const url = configService.get('REDIS_URL');
+        return {
+          store: redisStore,
+          url,
+        } as StoreConfig;
+      },
+    }),
     BullModule.registerQueue({
       name: 'snapshots',
     }),

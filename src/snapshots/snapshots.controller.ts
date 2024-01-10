@@ -26,6 +26,7 @@ import {
   SnapshotUrlResponse,
 } from './types';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('snapshots')
 @ApiTags('Snapshots')
@@ -271,6 +272,8 @@ export class SnapshotsController {
     description: 'The snapshot URL for the given snapshot ID',
     type: SnapshotUrlResponse,
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   getSnapshotDownloadURL(@Param('snapshotID') snapshotID: string) {
     return this.snapshotsService.getSnapshotDownloadURL(snapshotID);
   }
@@ -282,6 +285,8 @@ export class SnapshotsController {
     description: 'The snapshot URL for the given snapshot ID',
     type: SnapshotUrlResponse,
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   getAnalyzedSnapshotDownloadURL(@Param('snapshotID') snapshotID: string) {
     return this.snapshotsService.getSnapshotDownloadURL(snapshotID, true);
   }
