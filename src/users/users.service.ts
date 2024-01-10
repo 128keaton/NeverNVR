@@ -84,13 +84,6 @@ export class UsersService {
     const randomToken = Math.random().toString(36).slice(-8);
     const resetToken = await bcrypt.hash(randomToken, 10);
 
-    // const roleEnums: Role[] = [];
-    //
-    // for ( let role of roles ) {
-    //
-    //   if ( role === '')
-    // }
-
     const user = await this.prismaService.extended.user.create({
       data: {
         email: request.email,
@@ -115,7 +108,10 @@ export class UsersService {
       request.lastName,
     );
 
-    await this.sendSetupEmail(user, resetToken);
+    if (!request.roles.includes(Role.ADMIN)) {
+      await this.sendSetupEmail(user, resetToken);
+    }
+
     return user;
   }
 
