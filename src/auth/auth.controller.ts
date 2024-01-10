@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginRequest, RegisterRequest } from './requests';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -57,5 +50,11 @@ export class AuthController {
   @ApiBearerAuth()
   logout(@Req() req: Request) {
     return this.authService.logout(req['user']['sub']).then(() => true);
+  }
+
+  @Post('forgot')
+  forgot(@Body() request: { email: string }) {
+    console.log('In forgot');
+    return this.authService.sendPasswordReset(request.email);
   }
 }
