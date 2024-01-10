@@ -29,6 +29,12 @@ export class AuthController {
     return this.authService.authSetup(request.resetToken, request.password);
   }
 
+  @Post('forgot')
+  forgot(@Body() request: { email: string }) {
+    console.log('In forgot');
+    return this.authService.sendPasswordReset(request.email);
+  }
+
   // @UseGuards(RefreshTokenGuard)
   // @Get('refresh')
   // refreshTokens(@Req() req: Request) {
