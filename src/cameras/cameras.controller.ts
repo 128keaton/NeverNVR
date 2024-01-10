@@ -1,4 +1,11 @@
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   Body,
   Controller,
@@ -9,6 +16,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CamerasService } from './cameras.service';
 import {
@@ -19,9 +27,13 @@ import {
   CameraSnapshotsResponse,
 } from './types';
 import { Camera as CameraEntity } from '@prisma/client';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('cameras')
 @ApiTags('Cameras')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class CamerasController {
   constructor(private camerasService: CamerasService) {}
 

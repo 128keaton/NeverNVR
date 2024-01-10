@@ -6,7 +6,7 @@ import {
 } from '../services/novu/services';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, Role, User } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 
 @Injectable()
@@ -66,6 +66,7 @@ export class UsersService {
     password?: string;
     firstName: string;
     lastName: string;
+    roles: Role[];
   }) {
     let hashedPassword;
 
@@ -89,6 +90,7 @@ export class UsersService {
         password: hashedPassword,
         firstName: request.firstName,
         lastName: request.lastName,
+        roles: request.roles,
         passwordResetToken: resetToken,
       },
     });
@@ -106,7 +108,10 @@ export class UsersService {
       request.lastName,
     );
 
-    await this.sendSetupEmail(user, resetToken);
+    if (!request.roles.includes(Role.ADMIN)) {
+      await this.sendSetupEmail(user, resetToken);
+    }
+
     return user;
   }
 
@@ -173,6 +178,7 @@ export class UsersService {
         passwordResetToken: true,
         createdAt: true,
         lastLogin: true,
+        roles: true,
       },
     });
   }
@@ -197,6 +203,7 @@ export class UsersService {
         passwordResetToken: true,
         createdAt: true,
         lastLogin: true,
+        roles: true,
       },
     });
   }
@@ -246,6 +253,10 @@ export class UsersService {
     return { success: didSend };
   }
 
+  getUserCount() {
+    return this.prismaService.user.count();
+  }
+
   getUsers(request: {
     pageSize?: number;
     pageNumber?: number;
@@ -291,5 +302,15 @@ export class UsersService {
       },
     });
     return { deleted: deleted, id };
+  }
+
+  getTotalUsers() {
+    return this.prismaService.user.count({
+      where: {
+        roles: {
+          has: Role.ADMIN,
+        },
+      },
+    });
   }
 }

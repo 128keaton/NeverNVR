@@ -6,8 +6,15 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
 import { GatewaysService } from './gateways.service';
 import {
   Gateway,
@@ -17,9 +24,13 @@ import {
   GatewayStats,
   GatewayUpdate,
 } from './types';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('gateways')
 @ApiTags('Gateways')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class GatewaysController {
   constructor(private gatewaysService: GatewaysService) {}
 
