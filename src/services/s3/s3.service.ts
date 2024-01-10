@@ -128,8 +128,9 @@ export class S3Service {
    * Get a signed file URL from S3
    * @param fileName  - Name of file/key
    * @param bucket
+   * @param expiresIn
    */
-  async getFileURL(fileName: string, bucket: string) {
+  async getFileURL(fileName: string, bucket: string, expiresIn = 3600) {
     this.logger.verbose(`Get file url: ${fileName}`);
 
     const key = await this.getValidFilePath(fileName, bucket);
@@ -138,7 +139,7 @@ export class S3Service {
       Key: key,
     });
 
-    const url = await getSignedUrl(this.client, command, { expiresIn: 3600 });
+    const url = await getSignedUrl(this.client, command, { expiresIn });
 
     this.logger.verbose(
       `Generating signed URL for ${fileName} from S3 bucket ${bucket}`,
