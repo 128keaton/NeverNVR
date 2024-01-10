@@ -6,10 +6,12 @@ import {
   Header,
   Param,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ClipsService } from './clips.service';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ClipsResponse, ClipUrlResponse } from './type';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('clips')
 @ApiTags('Clips')
@@ -244,6 +246,8 @@ export class ClipsController {
     description: 'The download URL for the clip from S3',
     type: ClipUrlResponse,
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   getVideoDownloadURL(@Param('clipID') clipID: string) {
     return this.clipsService.getClipDownloadURL(clipID, false);
   }
@@ -255,6 +259,8 @@ export class ClipsController {
     description: 'The download URL for the clip from S3',
     type: ClipUrlResponse,
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   getAnalyzedVideoDownloadURL(@Param('clipID') clipID: string) {
     return this.clipsService.getClipDownloadURL(clipID, true);
   }

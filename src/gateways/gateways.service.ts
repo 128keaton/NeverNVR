@@ -2,18 +2,30 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import {
   GatewayCreate,
-  GatewayDiskSpace, GatewayStats,
+  GatewayDiskSpace,
+  GatewayEvent,
+  GatewayStats,
   GatewayUpdate,
 } from './types';
 import { ConnectionStatus } from '@prisma/client';
-import { lastValueFrom, map } from 'rxjs';
+import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { CameraEvent } from '../cameras/types';
 
 @Injectable()
 export class GatewaysService {
+  private _gatewayEvents = new ReplaySubject<GatewayEvent>();
+
+  get gatewayEvents() {
+    return this._gatewayEvents.asObservable();
+  }
+
   constructor(
     private prismaService: PrismaService,
     private httpService: HttpService,
+    @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,
   ) {}
 
   create(data: GatewayCreate) {
@@ -26,6 +38,13 @@ export class GatewaysService {
     return this.prismaService.gateway.findFirst({
       where: {
         id,
+      },
+      include: {
+        cameras: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
   }
@@ -41,6 +60,12 @@ export class GatewaysService {
       throw new HttpException(
         `Could not find gateway with ID ${gatewayID}`,
         HttpStatus.NOT_FOUND,
+      );
+
+    if (gateway.status === 'DISCONNECTED')
+      throw new HttpException(
+        `Gateway is disconnected ${gatewayID}`,
+        HttpStatus.BAD_REQUEST,
       );
 
     return lastValueFrom(
@@ -96,8 +121,8 @@ export class GatewaysService {
     });
   }
 
-  updateStatus(id: string, status: ConnectionStatus) {
-    return this.prismaService.gateway.update({
+  async updateStatus(id: string, status: ConnectionStatus) {
+    const gateway = await this.prismaService.gateway.update({
       where: {
         id,
       },
@@ -106,5 +131,66 @@ export class GatewaysService {
         lastConnection: status === 'CONNECTED' ? new Date() : undefined,
       },
     });
+
+    const emitCameras = async (
+      newStatus: 'CONNECTED' | 'DISCONNECTED' | 'UNKNOWN',
+    ) => {
+      const camerasToEmit = await this.prismaService.camera.findMany({
+        where: {
+          status: {
+            not: newStatus,
+          },
+        },
+      });
+
+      camerasToEmit.forEach((camera) =>
+        this.camerasQueue.add('outgoing', {
+          camera,
+          eventType: 'updated',
+        }),
+      );
+    };
+
+    switch (gateway.status) {
+      case 'DISCONNECTED':
+        await this.prismaService.camera.updateMany({
+          where: {
+            gatewayID: gateway.id,
+            status: {
+              not: 'DISCONNECTED',
+            },
+          },
+          data: {
+            status: 'DISCONNECTED',
+          },
+        });
+        await emitCameras('DISCONNECTED');
+        break;
+
+      case 'UNKNOWN':
+        await this.prismaService.camera.updateMany({
+          where: {
+            gatewayID: gateway.id,
+            status: {
+              not: 'DISCONNECTED',
+            },
+          },
+          data: {
+            status: 'DISCONNECTED',
+          },
+        });
+        await emitCameras('DISCONNECTED');
+        break;
+      default:
+        break;
+    }
+
+    this._gatewayEvents.next({
+      eventType: 'updated',
+      gateway,
+      id: gateway.id,
+    });
+
+    return gateway;
   }
 }

@@ -6,8 +6,9 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { CommonGateway } from '../common/common-gateway';
-import { GatewayDiskSpace, GatewayStats } from './types';
+import { GatewayDiskSpace, GatewayEvent, GatewayStats } from './types';
 import { GatewaysService } from './gateways.service';
+import { Interval } from '@nestjs/schedule';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -16,6 +17,62 @@ import { GatewaysService } from './gateways.service';
 export class GatewaysGateway extends CommonGateway {
   constructor(override gatewaysService: GatewaysService) {
     super(gatewaysService);
+
+    this.gatewaysService.gatewayEvents.subscribe((event) => {
+      this.handleGatewayEvent(event);
+    });
+  }
+
+  private handleGatewayEvent(event: GatewayEvent) {
+    // Get all UI clients (i.e. non gateway clients)
+    const webClients = this.getWebClients();
+
+    // Send the UI clients the same update
+    webClients.forEach((client) => {
+      client.emit(event.eventType, {
+        id: event.id,
+        gateway: event.gateway,
+      });
+    });
+  }
+
+  @Interval(1000 * 30)
+  async checkForGateways() {
+    const gateways = await this.gatewaysService
+      .getMany()
+      .then((response) => response.data);
+
+    if (gateways.length === 0) return;
+
+    this.logger.verbose(
+      `We have ${gateways.length} gateway(s) to check for connection`,
+    );
+
+    for (const gateway of gateways) {
+      const connectedClients = this.getGatewayClients(gateway.id);
+
+      this.logger.verbose(
+        `Gateway '${gateway.id}' has ${connectedClients.length} client(s) connected (need 1)`,
+      );
+
+      if (connectedClients.length === 0) {
+        if (gateway.status === 'DISCONNECTED')
+          this.logger.warn(`Gateway '${gateway.id}' is still disconnected`);
+
+        // Update anyway just in case cameras did not get updated
+        this.gatewaysService
+          .updateStatus(gateway.id, 'DISCONNECTED')
+          .then(() => {
+            this.logger.verbose(`Gateway '${gateway.id}' is now disconnected`);
+          });
+      } else if (
+        connectedClients.length > 0 &&
+        gateway.status !== 'CONNECTED'
+      ) {
+        await this.gatewaysService.updateStatus(gateway.id, 'CONNECTED');
+        this.logger.verbose(`Gateway '${gateway.id}' is now connected`);
+      }
+    }
   }
 
   @SubscribeMessage('response')
