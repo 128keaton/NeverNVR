@@ -24,6 +24,7 @@ export class TimelineService {
     for (const clip of clips) {
       const clipURL = await this.clipsService
         .getClipDownloadURL(clip.id, clip.analyzed)
+        .catch(() => this.clipsService.getClipDownloadURL(clip.id, false))
         .then((result) => result.url);
 
       let camera = cameras.find((camera) => camera.id === clip.cameraID);
@@ -47,6 +48,9 @@ export class TimelineService {
       if (!!snapshot) {
         item.snapshotURL = await this.snapshotsService
           .getSnapshotDownloadURL(snapshot.id, snapshot.analyzed)
+          .catch(() =>
+            this.snapshotsService.getSnapshotDownloadURL(snapshot.id, false),
+          )
           .then((result) => result.url);
 
         snapshots = snapshots.filter((snap) => snap.id !== snapshot.id);
@@ -61,6 +65,9 @@ export class TimelineService {
       const item = new TimelineItem(snapshot.timestamp, snapshot.timestamp);
       item.snapshotURL = await this.snapshotsService
         .getSnapshotDownloadURL(snapshot.id, snapshot.analyzed)
+        .catch(() =>
+          this.snapshotsService.getSnapshotDownloadURL(snapshot.id, false),
+        )
         .then((result) => result.url);
 
       let camera = cameras.find((camera) => camera.id === snapshot.cameraID);
