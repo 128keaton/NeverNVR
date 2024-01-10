@@ -21,6 +21,16 @@ export class TimelineItem {
   })
   clipURL?: string;
 
+  @ApiProperty({
+    required: false,
+  })
+  primaryTag?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  tags?: string[];
+
   constructor(start: Date, end: Date) {
     this.start = start;
     this.end = end;

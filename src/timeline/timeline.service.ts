@@ -36,6 +36,8 @@ export class TimelineService {
 
       const item = new TimelineItem(clip.start, clip.end);
       item.clipURL = clipURL;
+      item.tags = clip.tags;
+      item.primaryTag = clip.primaryTag;
 
       const snapshot = snapshots.find((snap) => {
         return (
@@ -52,6 +54,9 @@ export class TimelineService {
             this.snapshotsService.getSnapshotDownloadURL(snapshot.id, false),
           )
           .then((result) => result.url);
+
+        if (!item.primaryTag) item.primaryTag = snapshot.primaryTag;
+        if (!item.tags || !item.tags.length) item.tags = snapshot.tags;
 
         snapshots = snapshots.filter((snap) => snap.id !== snapshot.id);
       }
@@ -76,6 +81,9 @@ export class TimelineService {
         cameras.push(snapshot.camera);
         camera = snapshot.camera;
       }
+
+      item.primaryTag = snapshot.primaryTag;
+      item.tags = snapshot.tags;
 
       if (!!items.hasOwnProperty(camera.id)) items[camera.id].push(item);
       else items[camera.id] = [item];
