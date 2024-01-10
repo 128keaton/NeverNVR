@@ -60,8 +60,6 @@ export class TimelineService {
       return a.start.getTime() - b.start.getTime();
     });
 
-    console.log(items);
-
     const start = items[0].start;
     const end = items[items.length - 1].end;
 
