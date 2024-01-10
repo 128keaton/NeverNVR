@@ -13,7 +13,7 @@ import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
 @Module({
   providers: [SnapshotsService, SnapshotsGateway, SnapshotsQueue],
   controllers: [SnapshotsController],
-  exports: [SnapshotsGateway],
+  exports: [SnapshotsGateway, SnapshotsService],
   imports: [
     S3Module,
     VideoAnalyticsModule,

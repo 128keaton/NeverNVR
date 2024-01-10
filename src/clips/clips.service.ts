@@ -466,6 +466,31 @@ export class ClipsService {
     );
   }
 
+  async getClipsList(cameraID: string, clipIDs: string[]) {
+    return this.prismaService.clip.findMany({
+      where: {
+        id: {
+          in: clipIDs,
+        },
+        cameraID,
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
   async getVideoClip(id: string) {
     const clip = await this.prismaService.clip.findFirst({
       where: {

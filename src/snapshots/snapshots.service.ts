@@ -3,7 +3,6 @@ import { PrismaService } from '../services/prisma/prisma.service';
 import {
   SnapshotCreate,
   SnapshotEvent,
-  SnapshotUpdate,
   SnapshotUpload,
 } from './types';
 import { HttpStatusCode } from 'axios';
@@ -66,6 +65,31 @@ export class SnapshotsService {
         }
       }
     }
+  }
+
+  async getSnapshotsList(cameraID: string, snapshotIDs: string[]) {
+    return this.prismaService.snapshot.findMany({
+      where: {
+        id: {
+          in: snapshotIDs,
+        },
+        cameraID,
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
   }
 
   async uploadAndCreate(upload: SnapshotUpload, file: Express.Multer.File) {
