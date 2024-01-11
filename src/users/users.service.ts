@@ -159,6 +159,7 @@ export class UsersService {
         refreshToken: true,
         firstName: true,
         lastName: true,
+        roles: true,
       },
     });
   }

@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { User } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { HttpStatusCode } from 'axios';
@@ -111,7 +111,9 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<any> {
     const user = await this.validateUser(email, password);
-    const tokens = await this.getTokens(user.id, user.email);
+    const roleEnums: Role[] = user.roles;
+    const roles: string[] = roleEnums.map((role) => Role[role]);
+    const tokens = await this.getTokens(user.id, user.email, roles);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -135,13 +137,14 @@ export class AuthService {
     }
   }
 
-  async getTokens(userId: string, email: string) {
+  async getTokens(userId: string, email: string, roles: string[]) {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {
           sub: userId,
           email,
           type: 'access',
+          roles,
         },
         {
           secret: this.configService.get<string>('JWT_SECRET'),
@@ -153,6 +156,7 @@ export class AuthService {
           sub: userId,
           email,
           type: 'refresh',
+          roles,
         },
         {
           secret: this.configService.get<string>('JWT_SECRET'),
@@ -169,6 +173,8 @@ export class AuthService {
 
   async refreshTokens(userID: string, refreshToken: string) {
     const user = await this.usersService.getRefreshTokensPasswordByID(userID);
+    const roleEnums: Role[] = user.roles;
+    const roles: string[] = roleEnums.map((role) => Role[role]);
 
     if (!user || !user.refreshToken)
       throw new ForbiddenException('Access Denied');
@@ -176,7 +182,7 @@ export class AuthService {
     const refreshTokenMatches = bcrypt.compare(refreshToken, user.refreshToken);
 
     if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
-    const tokens = await this.getTokens(user.id, user.email);
+    const tokens = await this.getTokens(user.id, user.email, roles);
 
     await this.updateRefreshToken(userID, tokens.refreshToken);
     return tokens;
