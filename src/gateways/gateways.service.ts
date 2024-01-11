@@ -13,6 +13,7 @@ import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { CameraEvent } from '../cameras/types';
+import { AxiosRequestConfig } from 'axios';
 
 @Injectable()
 export class GatewaysService {
@@ -70,7 +71,10 @@ export class GatewaysService {
 
     return lastValueFrom(
       this.httpService
-        .get<GatewayStats>(`${gateway.connectionURL}/api/stats`)
+        .get<GatewayStats>(
+          `${gateway.connectionURL}/api/stats`,
+          this.getConfig(gateway.connectionToken),
+        )
         .pipe(map((response) => response.data)),
     );
   }
@@ -90,7 +94,10 @@ export class GatewaysService {
 
     return lastValueFrom(
       this.httpService
-        .get<GatewayDiskSpace>(`${gateway.connectionURL}/api/system/space`)
+        .get<GatewayDiskSpace>(
+          `${gateway.connectionURL}/api/system/space`,
+          this.getConfig(gateway.connectionToken),
+        )
         .pipe(map((response) => response.data)),
     );
   }
@@ -192,5 +199,13 @@ export class GatewaysService {
     });
 
     return gateway;
+  }
+
+  private getConfig(apiKey: string): AxiosRequestConfig {
+    return {
+      headers: {
+        'api-key': apiKey,
+      },
+    };
   }
 }

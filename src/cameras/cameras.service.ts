@@ -14,7 +14,7 @@ import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { ConnectionStatus } from '@prisma/client';
 import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
-import { HttpStatusCode } from 'axios';
+import { AxiosRequestConfig, HttpStatusCode } from 'axios';
 
 @Injectable()
 export class CamerasService {
@@ -70,7 +70,10 @@ export class CamerasService {
 
     return lastValueFrom(
       this.httpService
-        .get<Camera>(`${gateway.connectionURL}/api/cameras/${id}`)
+        .get<Camera>(
+          `${gateway.connectionURL}/api/cameras/${id}`,
+          this.getConfig(gateway.connectionToken),
+        )
         .pipe(map((response) => response.data)),
     );
   }
@@ -158,7 +161,10 @@ export class CamerasService {
 
     return lastValueFrom(
       this.httpService
-        .get(`${gateway.connectionURL}/api/cameras/${id}/logs`)
+        .get(
+          `${gateway.connectionURL}/api/cameras/${id}/logs`,
+          this.getConfig(gateway.connectionToken),
+        )
         .pipe(map((response) => response.data)),
     );
   }
@@ -171,6 +177,7 @@ export class CamerasService {
       this.httpService
         .get<{ restarted: boolean }>(
           `${gateway.connectionURL}/api/cameras/${id}/restart/recording`,
+          this.getConfig(gateway.connectionToken),
         )
         .pipe(map((response) => response.data)),
     );
@@ -184,6 +191,7 @@ export class CamerasService {
       this.httpService
         .get<{ restarted: boolean }>(
           `${gateway.connectionURL}/api/cameras/${id}/restart/streaming`,
+          this.getConfig(gateway.connectionToken),
         )
         .pipe(map((response) => response.data)),
     );
@@ -452,5 +460,13 @@ export class CamerasService {
       );
 
     return camera;
+  }
+
+  private getConfig(apiKey: string): AxiosRequestConfig {
+    return {
+      headers: {
+        'api-key': apiKey,
+      },
+    };
   }
 }
