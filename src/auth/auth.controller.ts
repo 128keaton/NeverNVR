@@ -57,4 +57,15 @@ export class AuthController {
     console.log('In forgot');
     return this.authService.sendPasswordReset(request.email);
   }
+
+  @Post('reset')
+  reset(
+    @Body() request: { email: string; resetToken: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      request.email,
+      request.resetToken,
+      request.newPassword,
+    );
+  }
 }

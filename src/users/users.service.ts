@@ -70,7 +70,9 @@ export class UsersService {
   }) {
     let hashedPassword;
 
-    if (!!request.password && request.password.length) {
+    const hasPassword = !!request.password && request.password.length;
+
+    if (hasPassword) {
       hashedPassword = await bcrypt.hash(request.password, 10);
     } else {
       this.logger.verbose(
@@ -108,7 +110,9 @@ export class UsersService {
       request.lastName,
     );
 
-    if (!!request.roles && !request.roles.includes(Role.ADMIN)) {
+    const isAdmin = !!request.roles && request.roles.includes(Role.ADMIN);
+
+    if (!isAdmin && !hasPassword) {
       await this.sendSetupEmail(user, resetToken);
     }
 
