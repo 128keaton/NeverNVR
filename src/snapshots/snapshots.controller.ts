@@ -9,14 +9,17 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
   ApiQuery,
   ApiResponse,
+  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { SnapshotsService } from './snapshots.service';
@@ -26,9 +29,14 @@ import {
   SnapshotUrlResponse,
 } from './types';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('snapshots')
 @ApiTags('Snapshots')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class SnapshotsController {
   constructor(private snapshotsService: SnapshotsService) {}
 
@@ -271,6 +279,8 @@ export class SnapshotsController {
     description: 'The snapshot URL for the given snapshot ID',
     type: SnapshotUrlResponse,
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   getSnapshotDownloadURL(@Param('snapshotID') snapshotID: string) {
     return this.snapshotsService.getSnapshotDownloadURL(snapshotID);
   }
@@ -282,6 +292,8 @@ export class SnapshotsController {
     description: 'The snapshot URL for the given snapshot ID',
     type: SnapshotUrlResponse,
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   getAnalyzedSnapshotDownloadURL(@Param('snapshotID') snapshotID: string) {
     return this.snapshotsService.getSnapshotDownloadURL(snapshotID, true);
   }

@@ -16,6 +16,7 @@ import { AuthModule } from './auth/auth.module';
 import { StatsModule } from './stats/stats.module';
 import { VideoAnalyticsModule } from './video-analytics/video-analytics.module';
 import { GatewayEventsModule } from './gateway-events/gateway-events.module';
+import { TimelineModule } from './timeline/timeline.module';
 
 @Module({
   imports: [
@@ -35,19 +36,11 @@ import { GatewayEventsModule } from './gateway-events/gateway-events.module';
     SnapshotsModule,
     UsersModule,
     ClipsModule,
-    RouterModule.register([
-      {
-        path: 'users',
-        module: UsersModule,
-      },
-      {
-        path: 'auth',
-        module: AuthModule,
-      },
-    ]),
+    UsersModule,
     StatsModule,
     VideoAnalyticsModule,
     GatewayEventsModule,
+    TimelineModule,
   ],
 })
 export class AppModule {}

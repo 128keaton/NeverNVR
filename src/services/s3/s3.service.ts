@@ -46,6 +46,10 @@ export class S3Service {
     bucket: string,
     file: Express.Multer.File,
   ) {
+    this.logger.log(
+      `Uploading file named: ${file.originalname} with mimetype: ${file.mimetype}`,
+    );
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: filePath,
@@ -124,8 +128,9 @@ export class S3Service {
    * Get a signed file URL from S3
    * @param fileName  - Name of file/key
    * @param bucket
+   * @param expiresIn
    */
-  async getFileURL(fileName: string, bucket: string) {
+  async getFileURL(fileName: string, bucket: string, expiresIn = 3600) {
     this.logger.verbose(`Get file url: ${fileName}`);
 
     const key = await this.getValidFilePath(fileName, bucket);
@@ -134,7 +139,7 @@ export class S3Service {
       Key: key,
     });
 
-    const url = await getSignedUrl(this.client, command, { expiresIn: 3600 });
+    const url = await getSignedUrl(this.client, command, { expiresIn });
 
     this.logger.verbose(
       `Generating signed URL for ${fileName} from S3 bucket ${bucket}`,

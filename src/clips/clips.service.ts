@@ -8,13 +8,13 @@ import { ClipFormat, Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { HttpStatusCode } from 'axios';
-import { lastValueFrom, Subject } from 'rxjs';
+import { lastValueFrom, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Interval } from '@nestjs/schedule';
 
 @Injectable()
 export class ClipsService {
-  private _clipEvents = new Subject<ClipEvent>();
+  private _clipEvents = new ReplaySubject<ClipEvent>();
   private logger = new Logger(ClipsService.name);
 
   get clipEvents() {
@@ -28,7 +28,7 @@ export class ClipsService {
     @InjectQueue('clips') private clipQueue: Queue,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Interval(120 * 1000)
   async updateAnalyzingClips() {
     const clips = await this.prismaService.clip.findMany({
       where: {
@@ -36,30 +36,52 @@ export class ClipsService {
       },
     });
 
+    this.logger.verbose(
+      `Updating all clips that are being analyzed ${clips.length} in total`,
+    );
+
     for (const clip of clips) {
       const now = new Date();
-      const FIVE_MIN = 5 * 60 * 1000;
+      const FIVE_MINUTES = 5 * 60 * 1000;
+      const FIVE_HOURS = 5 * 60 * 1000 * 60;
 
+      this.logger.verbose(`Clip ${clip.id}`);
       if (!clip.analyzeStart) {
+        this.logger.debug('No analyze start on clip');
         await this.update(clip.id, { analyzeStart: new Date() });
       } else if (
-        now.getDate() - new Date(clip.analyzeStart).getDate() > FIVE_MIN &&
+        now.getDate() - new Date(clip.analyzeStart).getDate() > FIVE_MINUTES &&
+        now.getDate() - new Date(clip.analyzeStart).getDate() < FIVE_HOURS &&
         !!clip.analyticsJobID
       ) {
+        this.logger.debug('Checking job status');
         const job = await lastValueFrom(
           this.videoAnalyticsService.checkJobStatus(clip.analyticsJobID),
         );
 
-        if (job.stalled) {
+        this.logger.verbose(job);
+        if (job.stalled || job.status === 'DONE' || job.status === 'ERROR') {
           await this.update(
             clip.id,
-            { analyzing: false },
+            { analyzing: false, analyzeEnd: new Date() },
             clip.cameraID,
             clip.gatewayID,
           );
         } else if (job.files_processed.includes(clip.fileName)) {
           this.videoAnalyticsService.handleJobFileProcessed(clip.fileName, job);
         }
+      } else if (
+        now.getDate() - new Date(clip.analyzeStart).getMilliseconds() >=
+          FIVE_HOURS &&
+        !!clip.analyticsJobID
+      ) {
+        this.logger.warn('Job has gone one for far too long');
+        await this.update(
+          clip.id,
+          { analyzing: false, analyzeEnd: new Date() },
+          clip.cameraID,
+          clip.gatewayID,
+        );
       }
     }
   }
@@ -442,6 +464,30 @@ export class ClipsService {
         perPage: pageSize,
       },
     );
+  }
+
+  async getClipsList(clipIDs: string[]) {
+    return this.prismaService.clip.findMany({
+      where: {
+        id: {
+          in: clipIDs,
+        },
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
   }
 
   async getVideoClip(id: string) {

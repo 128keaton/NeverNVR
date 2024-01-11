@@ -10,7 +10,7 @@ import {
   CameraSnapshotsResponse,
 } from './types';
 import { HttpService } from '@nestjs/axios';
-import { lastValueFrom, map, Subject } from 'rxjs';
+import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { ConnectionStatus } from '@prisma/client';
 import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
@@ -18,7 +18,7 @@ import { HttpStatusCode } from 'axios';
 
 @Injectable()
 export class CamerasService {
-  private _cameraEvents = new Subject<CameraEvent>();
+  private _cameraEvents = new ReplaySubject<CameraEvent>();
   private logger = new Logger(CamerasService.name);
 
   get cameraEvents() {
@@ -66,17 +66,7 @@ export class CamerasService {
         HttpStatus.NOT_FOUND,
       );
 
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -163,25 +153,8 @@ export class CamerasService {
   }
 
   async getLogOutput(id: string) {
-    const camera = await this.get(id);
-
-    if (!camera)
-      throw new HttpException(
-        `Could not find camera with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const camera = await this.getValidCamera(id);
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -191,25 +164,8 @@ export class CamerasService {
   }
 
   async restartRecording(id: string) {
-    const camera = await this.get(id);
-
-    if (!camera)
-      throw new HttpException(
-        `Could not find camera with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const camera = await this.getValidCamera(id);
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -221,25 +177,8 @@ export class CamerasService {
   }
 
   async restartStreaming(id: string) {
-    const camera = await this.get(id);
-
-    if (!camera)
-      throw new HttpException(
-        `Could not find camera with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: camera.gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${camera.gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
+    const camera = await this.getValidCamera(id);
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -250,8 +189,20 @@ export class CamerasService {
     );
   }
 
-  async getMany() {
+  async getMany(request?: { gatewayID?: string }) {
+    let where: any = {};
+
+    if (!!request) {
+      if (request.gatewayID) {
+        where = {
+          ...where,
+          gatewayID: request.gatewayID,
+        };
+      }
+    }
+
     const cameras = await this.prismaService.camera.findMany({
+      where,
       include: {
         gateway: {
           select: {
@@ -367,10 +318,16 @@ export class CamerasService {
           },
         },
       })
-      .catch((err) => {
-        this.logger.error(
-          `Could not update camera with ID ${id}: ${JSON.stringify(err)}`,
-        );
+      .catch((err: { name: string; code: string }) => {
+        if (err.code !== 'P2025')
+          this.logger.error(
+            `Could not update camera with ID ${id}: ${JSON.stringify(err)}`,
+          );
+        else
+          this.logger.warn(
+            `Not able to update camera with ID ${id} because it does not exist on this NVR`,
+          );
+
         return null;
       });
 
@@ -461,5 +418,39 @@ export class CamerasService {
         synchronized,
       },
     });
+  }
+
+  private async getValidGateway(gatewayID: string) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id: gatewayID,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Could not find gateway with ID ${gatewayID}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    if (gateway.status === 'DISCONNECTED')
+      throw new HttpException(
+        `Gateway is disconnected ${gatewayID}`,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    return gateway;
+  }
+
+  private async getValidCamera(id: string) {
+    const camera = await this.get(id);
+
+    if (!camera)
+      throw new HttpException(
+        `Could not find camera with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    return camera;
   }
 }

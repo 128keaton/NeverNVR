@@ -303,4 +303,14 @@ export class UsersService {
     });
     return { deleted: deleted, id };
   }
+
+  getTotalUsers() {
+    return this.prismaService.user.count({
+      where: {
+        roles: {
+          has: Role.ADMIN,
+        },
+      },
+    });
+  }
 }

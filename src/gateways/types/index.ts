@@ -1,6 +1,7 @@
 // created from 'create-ts-index'
 
 export * from './gateway-disk-space.type';
+export * from './gateway-event.type';
 export * from './gateway-stats.type';
 export * from './gateway.create';
 export * from './gateway.type';

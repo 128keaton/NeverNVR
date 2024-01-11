@@ -1,4 +1,11 @@
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   Body,
   Controller,
@@ -8,6 +15,8 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CamerasService } from './cameras.service';
 import {
@@ -18,9 +27,13 @@ import {
   CameraSnapshotsResponse,
 } from './types';
 import { Camera as CameraEntity } from '@prisma/client';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('cameras')
 @ApiTags('Cameras')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class CamerasController {
   constructor(private camerasService: CamerasService) {}
 
@@ -95,14 +108,21 @@ export class CamerasController {
   }
 
   @Get()
+  @ApiQuery({
+    name: 'gatewayID',
+    required: false,
+    type: String,
+  })
   @ApiOperation({ summary: 'Get all cameras' })
   @ApiResponse({
     status: 200,
     description: 'The found records',
     type: CamerasResponse,
   })
-  getMany() {
-    return this.camerasService.getMany();
+  getMany(@Query('gatewayID') gatewayID?: string) {
+    return this.camerasService.getMany({
+      gatewayID,
+    });
   }
 
   @Delete(':id')

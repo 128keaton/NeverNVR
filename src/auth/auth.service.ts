@@ -2,14 +2,9 @@ import {
   BadRequestException,
   ForbiddenException,
   HttpException,
-  // HttpStatus,
   Injectable,
-  Logger,
 } from '@nestjs/common';
-
 import * as bcrypt from 'bcrypt';
-// import { Server } from 'socket.io';
-// import { WebSocketAuthMiddleware } from './middleware/websocket-auth.middleware';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -19,23 +14,61 @@ import { AppHelpers } from 'src/app.helpers';
 
 @Injectable()
 export class AuthService {
-  private logger = new Logger('AuthService');
+  private apiKey?: string;
 
   constructor(
     private usersService: UsersService,
     private configService: ConfigService,
-    // private middleware: WebSocketAuthMiddleware,
     private jwtService: JwtService,
-  ) {}
+  ) {
+    this.apiKey = this.configService.get('API_KEY');
+  }
 
   async validateUser(email: string, password: string): Promise<User> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) throw new BadRequestException('User does not exist');
-    // if (!user.emailVerified) throw new BadRequestException('User not verified');
-    if (!bcrypt.compare(password, user.password))
+
+    if (!(await bcrypt.compare(password, user.password)))
       throw new BadRequestException('Password is incorrect');
 
     return user;
+  }
+
+  verifyApiKey(apiKey: string) {
+    if (!this.apiKey) return false;
+
+    return apiKey === this.apiKey;
+  }
+
+  async firstTimeSetup(
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) {
+    const totalUsers = await this.usersService.getTotalUsers();
+
+    if (totalUsers > 0)
+      throw new HttpException(
+        'Initial user already created',
+        HttpStatusCode.Forbidden,
+      );
+
+    const user = await this.usersService.create({
+      email,
+      firstName,
+      lastName,
+      password,
+      roles: ['ADMIN'],
+    });
+
+    if (!user)
+      throw new HttpException(
+        'Could not create initial user',
+        HttpStatusCode.BadRequest,
+      );
+
+    return this.login(user.email, password);
   }
 
   async validateUserResetToken(
@@ -45,47 +78,10 @@ export class AuthService {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) throw new BadRequestException('User does not exist');
 
-    if (!bcrypt.compare(resetToken, user.passwordResetToken))
+    if (!(await bcrypt.compare(resetToken, user.passwordResetToken)))
       throw new BadRequestException('Token is incorrect');
 
     return user;
-  }
-
-  async loginDemo() {
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(
-        {
-          sub: 'demo',
-          email: 'demo@copcart.com',
-          type: 'access',
-        },
-        {
-          secret: this.configService.get<string>('JWT_SECRET'),
-          expiresIn: '15m',
-        },
-      ),
-      this.jwtService.signAsync(
-        {
-          sub: 'demo',
-          email: 'demo@copcart.com',
-          type: 'refresh',
-        },
-        {
-          secret: this.configService.get<string>('JWT_SECRET'),
-          expiresIn: '7d',
-        },
-      ),
-    ]);
-
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        name: 'Demo User',
-        email: 'demo@copcart.com',
-        id: 'demo',
-      },
-    };
   }
 
   async resetPassword(email: string, resetToken: string, newPassword: string) {
@@ -172,25 +168,15 @@ export class AuthService {
   }
 
   async refreshTokens(userID: string, refreshToken: string) {
-    let tokens;
+    const user = await this.usersService.getRefreshTokensPasswordByID(userID);
 
-    if (!AppHelpers.validateUserID(userID)) {
-      // DEMO mode
-      tokens = await this.getTokens(userID, 'demo@copcart.com');
-    } else {
-      const user = await this.usersService.getRefreshTokensPasswordByID(userID);
+    if (!user || !user.refreshToken)
+      throw new ForbiddenException('Access Denied');
 
-      if (!user || !user.refreshToken)
-        throw new ForbiddenException('Access Denied');
+    const refreshTokenMatches = bcrypt.compare(refreshToken, user.refreshToken);
 
-      const refreshTokenMatches = bcrypt.compare(
-        refreshToken,
-        user.refreshToken,
-      );
-
-      if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
-      tokens = await this.getTokens(user.id, user.email);
-    }
+    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+    const tokens = await this.getTokens(user.id, user.email);
 
     await this.updateRefreshToken(userID, tokens.refreshToken);
     return tokens;
@@ -199,8 +185,4 @@ export class AuthService {
   async logout(userID: string) {
     return this.usersService.update(userID, { refreshToken: null });
   }
-
-  // applyMiddleware(server: Server) {
-  //   server.use(this.middleware.middleware);
-  // }
 }

@@ -7,10 +7,23 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../services/prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
 import { NovuModule } from '../services/novu/novu.module';
+import {
+  AccessTokenStrategy,
+  ApiKeyStrategy,
+  LocalStrategy,
+  RefreshTokenStrategy,
+} from './strategies';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, JwtService],
+  providers: [
+    AuthService,
+    JwtService,
+    LocalStrategy,
+    RefreshTokenStrategy,
+    ApiKeyStrategy,
+    AccessTokenStrategy,
+  ],
   imports: [HttpModule, PrismaModule, UsersModule, ConfigModule, NovuModule],
   exports: [AuthService],
 })

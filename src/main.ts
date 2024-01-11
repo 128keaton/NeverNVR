@@ -15,6 +15,8 @@ async function bootstrap() {
       .setTitle('NeverNVR')
       .setDescription('The best goddamn NVR ever')
       .setVersion('0.1')
+      .addBearerAuth()
+      .addApiKey({ type: 'apiKey', name: 'api-key', in: 'header' }, 'api-key')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
