@@ -27,5 +27,4 @@ export class CamerasQueue {
 
     return this.camerasGateway.handleCameraEvent(job.data);
   }
-
 }

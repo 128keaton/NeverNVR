@@ -319,10 +319,19 @@ export class SnapshotsService {
     }
 
     if (!!gatewayID) {
-      where = {
-        ...where,
-        gatewayID,
-      };
+      if (gatewayID.includes(',')) {
+        const gatewayIDs = gatewayID.split(',');
+        where = {
+          gatewayID: {
+            in: gatewayIDs,
+          },
+        };
+      } else {
+        where = {
+          ...where,
+          gatewayID,
+        };
+      }
     }
 
     if (showAnalyzedOnly === 'true') {

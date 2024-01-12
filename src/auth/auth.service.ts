@@ -111,7 +111,7 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<any> {
     const user = await this.validateUser(email, password);
-    const tokens = await this.getTokens(user.id, user.email);
+    const tokens = await this.getTokens(user.id, user.email, user.roles);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -135,13 +135,14 @@ export class AuthService {
     }
   }
 
-  async getTokens(userId: string, email: string) {
+  async getTokens(userId: string, email: string, roles: string[]) {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {
           sub: userId,
           email,
           type: 'access',
+          roles,
         },
         {
           secret: this.configService.get<string>('JWT_SECRET'),
@@ -153,6 +154,7 @@ export class AuthService {
           sub: userId,
           email,
           type: 'refresh',
+          roles,
         },
         {
           secret: this.configService.get<string>('JWT_SECRET'),
@@ -176,7 +178,7 @@ export class AuthService {
     const refreshTokenMatches = bcrypt.compare(refreshToken, user.refreshToken);
 
     if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
-    const tokens = await this.getTokens(user.id, user.email);
+    const tokens = await this.getTokens(user.id, user.email, user.roles);
 
     await this.updateRefreshToken(userID, tokens.refreshToken);
     return tokens;
