@@ -126,6 +126,46 @@ export class VideoAnalyticsService {
       );
   }
 
+  createTimelapse(
+    fileNames: string[],
+    cameraID: string,
+    bucketName: string,
+    start: Date,
+    end: Date,
+    days: number,
+  ) {
+    const url = `${this.apiURL}/timelapse/create`;
+    const imageClipPaths = fileNames.map((fileName) =>
+      AppHelpers.getFileKey(fileName, cameraID, '.jpeg'),
+    );
+
+    return this.httpService
+      .post<JobResponse>(
+        url,
+        {
+          bucket_name: bucketName,
+          request_type: 'timelapse',
+          images: imageClipPaths,
+          videos: [],
+          start_date: start,
+          end_date: end,
+          days,
+        },
+        {
+          headers: this.getHeaders(),
+        },
+      )
+      .pipe(
+        map((response) => response.data),
+        map((data) => data.id),
+        catchError((err) => {
+          this.logger.error(err);
+
+          return of(null);
+        }),
+      );
+  }
+
   getClassificationData(fileName: string, jobID: string) {
     const url = `${this.apiURL}/${jobID}/${fileName}`;
     return this.httpService
