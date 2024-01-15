@@ -15,11 +15,14 @@ export class TimelineService {
     snapshotIDs: string[],
   ): Promise<Timeline[]> {
     const timeline: Timeline[] = [];
-    const clips = await this.clipsService.getClipsList(clipIDs);
+    const clips = await this.clipsService.getClipsList(clipIDs, true);
     const cameras: { name?: string; id: string }[] = [];
     const items: { [key: string]: TimelineItem[] } = {};
 
-    let snapshots = await this.snapshotsService.getSnapshotsList(snapshotIDs);
+    let snapshots = await this.snapshotsService.getSnapshotsList(
+      snapshotIDs,
+      true,
+    );
 
     for (const clip of clips) {
       const clipURL = await this.clipsService
@@ -43,7 +46,8 @@ export class TimelineService {
         return (
           snap.timestamp >= clip.start &&
           snap.timestamp <= clip.end &&
-          snap.cameraID === clip.cameraID
+          snap.cameraID === clip.cameraID &&
+          snapshot.availableCloud
         );
       });
 

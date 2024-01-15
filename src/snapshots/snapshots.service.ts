@@ -63,12 +63,13 @@ export class SnapshotsService {
     }
   }
 
-  async getSnapshotsList(snapshotIDs: string[]) {
+  async getSnapshotsList(snapshotIDs: string[], availableCloud?: boolean) {
     return this.prismaService.snapshot.findMany({
       where: {
         id: {
           in: snapshotIDs,
         },
+        availableCloud,
       },
       include: {
         gateway: {

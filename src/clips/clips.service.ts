@@ -474,12 +474,13 @@ export class ClipsService {
     );
   }
 
-  async getClipsList(clipIDs: string[]) {
+  async getClipsList(clipIDs: string[], availableCloud?: boolean) {
     return this.prismaService.clip.findMany({
       where: {
         id: {
           in: clipIDs,
         },
+        availableCloud,
       },
       include: {
         gateway: {
