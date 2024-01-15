@@ -46,8 +46,7 @@ export class TimelineService {
         return (
           snap.timestamp >= clip.start &&
           snap.timestamp <= clip.end &&
-          snap.cameraID === clip.cameraID &&
-          snapshot.availableCloud
+          snap.cameraID === clip.cameraID
         );
       });
 
