@@ -294,8 +294,14 @@ export class SnapshotsController {
   })
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(5000)
-  getAnalyzedSnapshotDownloadURL(@Param('snapshotID') snapshotID: string) {
-    return this.snapshotsService.getSnapshotDownloadURL(snapshotID, true);
+  async getAnalyzedSnapshotDownloadURL(
+    @Param('snapshotID') snapshotID: string,
+  ) {
+    return this.snapshotsService
+      .getSnapshotDownloadURL(snapshotID, true)
+      .catch(() => {
+        return this.snapshotsService.getSnapshotDownloadURL(snapshotID, false);
+      });
   }
 
   @Get(':snapshotID/image.jpeg')

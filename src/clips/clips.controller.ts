@@ -273,8 +273,10 @@ export class ClipsController {
   })
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(5000)
-  getAnalyzedVideoDownloadURL(@Param('clipID') clipID: string) {
-    return this.clipsService.getClipDownloadURL(clipID, true);
+  async getAnalyzedVideoDownloadURL(@Param('clipID') clipID: string) {
+    return this.clipsService.getClipDownloadURL(clipID, true).catch(() => {
+      return this.clipsService.getClipDownloadURL(clipID, false);
+    });
   }
 
   @Get(':clipID')
