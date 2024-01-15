@@ -576,6 +576,8 @@ export class ClipsService {
       '.mp4',
     );
 
-    return this.s3Service.getFileURL(fileKey, clip.gateway.s3Bucket);
+    return {
+      url: `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`,
+    };
   }
 }

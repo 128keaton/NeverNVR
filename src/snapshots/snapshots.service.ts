@@ -559,19 +559,9 @@ export class SnapshotsService {
       '.jpeg',
     );
 
-    return this.s3Service
-      .getFileURL(fileKey, snapshot.gateway.s3Bucket)
-      .catch(() => {
-        // Fetch using snapshot timestamp instead of parsed filename timestamp
-        const timestamp = snapshot.timestamp || new Date();
-        const baseDirectory = timestamp.toISOString().split('T')[0];
-        const cloudFileName = `${baseDirectory}/${snapshot.cameraID}/${snapshot.fileName}`;
-
-        return this.s3Service.getFileURL(
-          cloudFileName,
-          snapshot.gateway.s3Bucket,
-        );
-      });
+    return {
+      url: `https://${snapshot.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`,
+    };
   }
 
   async getSnapshotImage(id: string) {
