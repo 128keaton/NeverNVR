@@ -170,9 +170,9 @@ export class ClipsService {
       },
     });
 
-    let analyticsJobID: string | undefined;
     if (create.availableCloud) {
-      const gateway = await this.prismaService.gateway.findFirst({
+      // Disabling video classification for now
+      /*  const gateway = await this.prismaService.gateway.findFirst({
         where: {
           id: create.gatewayID,
         },
@@ -187,7 +187,7 @@ export class ClipsService {
           cameraID,
           gateway.s3Bucket,
         ),
-      );
+      );*/
     }
 
     const clip = await this.prismaService.clip
@@ -205,7 +205,6 @@ export class ClipsService {
           timezone: camera.timezone,
           availableLocally: create.availableLocally,
           availableCloud: create.availableCloud,
-          analyticsJobID,
           camera: {
             connect: {
               id: camera.id,
