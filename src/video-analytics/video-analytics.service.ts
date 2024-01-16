@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { ClassificationResponse, JobResponse } from './responses';
-import { catchError, filter, map, of } from 'rxjs';
+import { catchError, filter, map, Observable, of } from 'rxjs';
 import { AppHelpers } from '../app.helpers';
 import { io, Socket } from 'socket.io-client';
 import { InjectQueue } from '@nestjs/bull';
@@ -132,12 +132,23 @@ export class VideoAnalyticsService {
     bucketName: string,
     start: Date,
     end: Date,
-    days: number,
-  ) {
+  ): Observable<string> {
     const url = `${this.apiURL}/timelapse/create`;
     const imageClipPaths = fileNames.map((fileName) =>
       AppHelpers.getFileKey(fileName, cameraID, '.jpeg'),
     );
+
+    const [startYear, startMonth, startDay] = start
+      .toISOString()
+      .split('T')[0]
+      .split('-');
+    const [endYear, endMonth, endDay] = end
+      .toISOString()
+      .split('T')[0]
+      .split('-');
+
+    const diffTime = Math.abs(start.getTime() - end.getTime());
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     return this.httpService
       .post<JobResponse>(
@@ -147,8 +158,8 @@ export class VideoAnalyticsService {
           request_type: 'timelapse',
           images: imageClipPaths,
           videos: [],
-          start_date: start,
-          end_date: end,
+          start_date: `${startYear}-${startMonth}-${startDay}`,
+          end_date: `${endYear}-${endMonth}-${endDay}`,
           days,
         },
         {

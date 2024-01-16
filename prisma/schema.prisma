@@ -59,7 +59,8 @@ model Gateway {
   snapshots Snapshot[]
 
   // S3 bucket where clips/snapshots are stored
-  s3Bucket String @unique
+  s3Bucket   String      @unique
+  timelapses Timelapse[]
 }
 
 // Very similar to the gateway camera but just at a higher level
@@ -99,7 +100,8 @@ model Camera {
   gateway   Gateway? @relation(fields: [gatewayID], references: [id])
   gatewayID String?  @db.Uuid
 
-  synchronized Boolean @default(false)
+  synchronized Boolean     @default(false)
+  timelapses   Timelapse[]
 }
 
 model Snapshot {
@@ -203,17 +205,58 @@ model Clip {
   tags             String[]  @default([])
 }
 
+model Timelapse {
+  // ID of the timelapse
+  id String @id @default(uuid()) @db.Uuid
+
+  // Timelapse file name on S3
+  fileName String?
+
+  // Timelapse file size on S3
+  fileSize Int @default(0)
+
+  // Timelapse width
+  width Int @default(0)
+
+  // Timelapse height
+  height Int @default(0)
+
+  // Timelapse duration
+  duration Int @default(0)
+
+  // Timelapse day count
+  days Int @default(0)
+
+  // Timelapse's file format
+  format ClipFormat @default(h265)
+
+  // Represents timelapse start
+  start DateTime
+
+  // Represents timelapse end
+  end DateTime
+
+  // Camera relationship
+  camera   Camera? @relation(fields: [cameraID], references: [id], onDelete: Cascade)
+  cameraID String? @db.Uuid
+
+  // Gateway relationship
+  gateway   Gateway? @relation(fields: [gatewayID], references: [id])
+  gatewayID String?  @db.Uuid
+
+  timelapseJobID String
+  generating     Boolean @default(true)
+}
+
 model User {
-   id                 String          @id @default(uuid()) @db.Uuid
-   email              String          @unique
-   password           String
-   firstName          String?
-   lastName           String?
-   refreshToken       String?
-   passwordResetToken String?
-   createdAt          DateTime        @default(now())
-   lastLogin          DateTime        @default(now())
-   roles              Role[]          @default([USER])
- }
-
-
+  id                 String   @id @default(uuid()) @db.Uuid
+  email              String   @unique
+  password           String
+  firstName          String?
+  lastName           String?
+  refreshToken       String?
+  passwordResetToken String?
+  createdAt          DateTime @default(now())
+  lastLogin          DateTime @default(now())
+  roles              Role[]   @default([USER])
+}
