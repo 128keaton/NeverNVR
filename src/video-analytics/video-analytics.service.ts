@@ -240,12 +240,10 @@ export class VideoAnalyticsService {
       this.logger.verbose(`Timelapse job finished: ${job.id}`);
       this.logger.verbose(JSON.stringify(job));
 
-      if (!!timelapseJob.output_file) {
-        return this.timelapseQueue.add('finished', {
-          jobID: timelapseJob.id,
-          outputFilename: timelapseJob.output_file,
-        });
-      }
+      return this.timelapseQueue.add('finished', {
+        jobID: timelapseJob.id,
+        outputFilename: timelapseJob.output_file,
+      });
     }
   }
 

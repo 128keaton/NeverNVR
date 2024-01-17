@@ -580,32 +580,55 @@ export class SnapshotsService {
       const startingCount = response.data.length;
       const threshold = Math.round(response.data.length / 1000);
 
-      let counter = 0;
-      snapshots = snapshots
-        .map((snapshot) => {
-          if (counter >= threshold) {
-            counter = 0;
-            return snapshot;
-          }
+      let counter = threshold;
+      const filtered: Snapshot[] = [];
 
-          counter += 1;
-          return null;
-        })
-        .filter(Boolean);
+      for (const snapshot of snapshots) {
+        if (counter >= threshold) {
+          const fileName = AppHelpers.getFileKey(
+            snapshot.fileName,
+            snapshot.cameraID,
+            '.jpeg',
+          );
+
+          const exists = await this.s3Service.fileExists(
+            fileName,
+            camera.gateway.s3Bucket,
+          );
+
+          if (exists) {
+            filtered.push(snapshot);
+          } else {
+            counter = 0;
+            continue;
+          }
+        }
+
+        counter += 1;
+      }
 
       const endCount = snapshots.length;
       this.logger.verbose(`Reduced from ${startingCount} to ${endCount}`);
+      snapshots = filtered.filter(Boolean);
+    } else {
+      const filtered: Snapshot[] = [];
+
+      for (const snapshot of snapshots) {
+        const fileName = AppHelpers.getFileKey(
+          snapshot.fileName,
+          snapshot.cameraID,
+          '.jpeg',
+        );
+
+        const exists = await this.s3Service.fileExists(
+          fileName,
+          camera.gateway.s3Bucket,
+        );
+
+        if (exists) filtered.push(snapshot);
+      }
+      snapshots = filtered.filter(Boolean);
     }
-
-    snapshots = snapshots.filter(async (snapshot) => {
-      const fileName = AppHelpers.getFileKey(
-        snapshot.fileName,
-        snapshot.cameraID,
-        '.jpeg',
-      );
-
-      return await this.s3Service.fileExists(fileName, camera.gateway.s3Bucket);
-    });
 
     const fileNames = snapshots.map((snapshot) => {
       return snapshot.fileName;
