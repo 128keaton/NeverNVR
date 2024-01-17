@@ -6,10 +6,12 @@ import { VideoAnalyticsService } from '../video-analytics/video-analytics.servic
 import { HttpStatusCode } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { TimelapseCreate } from './types';
+import { S3Service } from '../services/s3/s3.service';
 
 @Injectable()
 export class TimelapseService {
   constructor(
+    private s3Service: S3Service,
     private prismaService: PrismaService,
     private videoAnalyticsService: VideoAnalyticsService,
   ) {}
@@ -90,6 +92,32 @@ export class TimelapseService {
     });
   }
 
+  async deleteTimelapse(id: string) {
+    const deleted = await this.prismaService.timelapse.delete({
+      where: {
+        id,
+      },
+      include: {
+        gateway: true,
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!deleted) return deleted;
+
+    if (deleted.fileName) {
+      const fileName = this.getTimelapseFilename(deleted);
+      await this.s3Service.deleteFile(fileName, deleted.gateway.s3Bucket);
+    }
+
+    return deleted;
+  }
+
   getTimelapses(
     cameraID?: string,
     pageSize?: number,
@@ -114,7 +142,22 @@ export class TimelapseService {
             camera: {
               name: {
                 contains: search,
+                mode: 'insensitive',
               },
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            fileName: {
+              contains: search,
+              mode: 'insensitive',
             },
           },
         ],
@@ -224,7 +267,7 @@ export class TimelapseService {
   update(id: string, data: any) {
     return this.prismaService.timelapse.update({
       where: {
-        id
+        id,
       },
       data,
       include: {
@@ -241,6 +284,51 @@ export class TimelapseService {
           },
         },
       },
-    })
+    });
+  }
+
+  async getTimelapseDownloadURL(id: string) {
+    const timelapse = await this.prismaService.timelapse.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        start: true,
+        end: true,
+        fileName: true,
+        cameraID: true,
+        generating: true,
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    if (!timelapse)
+      throw new HttpException(
+        'Could not find timelapse',
+        HttpStatusCode.NotFound,
+      );
+
+    if (timelapse.generating)
+      throw new HttpException(
+        'Timelapse not generated',
+        HttpStatusCode.NotFound,
+      );
+
+    const fileName = this.getTimelapseFilename(timelapse);
+
+    return {
+      url: `https://${timelapse.gateway.s3Bucket}.copcart-cdn.com/${fileName}`,
+    };
+  }
+
+  private getTimelapseFilename(timelapse: {
+    cameraID: string;
+    fileName: string;
+  }) {
+    return `${timelapse.cameraID}/timelapses/${timelapse.fileName}`;
   }
 }

@@ -212,18 +212,6 @@ model Timelapse {
   // Timelapse file name on S3
   fileName String?
 
-  // Timelapse file size on S3
-  fileSize Int @default(0)
-
-  // Timelapse width
-  width Int @default(0)
-
-  // Timelapse height
-  height Int @default(0)
-
-  // Timelapse duration
-  duration Int @default(0)
-
   // Timelapse day count
   days Int @default(0)
 
