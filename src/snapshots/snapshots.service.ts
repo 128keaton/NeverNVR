@@ -578,7 +578,7 @@ export class SnapshotsService {
 
     if (response.data.length > 2000) {
       const startingCount = response.data.length;
-      const threshold = Math.round(response.data.length / 4000);
+      const threshold = Math.round(response.data.length / 500);
 
       let counter = 0;
       snapshots = snapshots
@@ -611,20 +611,28 @@ export class SnapshotsService {
       return snapshot.fileName;
     });
 
-    let previewURL: string | undefined;
+    let startPreviewURL: string | undefined;
+    let endPreviewURL: string | undefined;
 
     if (snapshots.length > 0) {
       const firstSnapshot = snapshots[0];
+      const lastSnapshot = snapshots[snapshots.length - 1];
 
-      previewURL = await this.getSnapshotDownloadURL(
+      startPreviewURL = await this.getSnapshotDownloadURL(
         firstSnapshot.id,
+        false,
+      ).then((response) => response.url);
+
+      endPreviewURL = await this.getSnapshotDownloadURL(
+        lastSnapshot.id,
         false,
       ).then((response) => response.url);
     }
 
     return {
       fileNames,
-      previewURL,
+      startPreviewURL,
+      endPreviewURL,
     };
   }
 
