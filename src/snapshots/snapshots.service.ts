@@ -300,15 +300,34 @@ export class SnapshotsService {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
     const orderBy = {};
-    let where: any = {};
+    let where: Prisma.SnapshotWhereInput = {};
 
     if (!!search) {
       where = {
-        camera: {
-          name: {
-            contains: search,
+        OR: [
+          {
+            camera: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
           },
-        },
+          {
+            fileName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
       };
     }
 
