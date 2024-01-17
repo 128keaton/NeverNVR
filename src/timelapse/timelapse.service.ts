@@ -7,10 +7,18 @@ import { HttpStatusCode } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { TimelapseCreate } from './types';
 import { S3Service } from '../services/s3/s3.service';
+import { AppHelpers } from '../app.helpers';
+import { SnapshotsService } from '../snapshots/snapshots.service';
+import { Queue } from 'bull';
+import { TimelapseEvent } from './types/timelapse.event';
+import { InjectQueue } from '@nestjs/bull';
 
 @Injectable()
 export class TimelapseService {
   constructor(
+    @InjectQueue('timelapse')
+    private timelapseQueue: Queue<TimelapseEvent>,
+    private snapshotsService: SnapshotsService,
     private s3Service: S3Service,
     private prismaService: PrismaService,
     private videoAnalyticsService: VideoAnalyticsService,
@@ -37,6 +45,11 @@ export class TimelapseService {
     const start = new Date(request.start);
     const end = new Date(request.end);
 
+    const timeDifference = end.getTime() - start.getTime();
+    const days = Math.round(timeDifference / (1000 * 3600 * 24));
+
+    console.log('Calculated days', days);
+
     const timelapseJobID = await firstValueFrom(
       this.videoAnalyticsService.createTimelapse(
         request.fileNames,
@@ -44,14 +57,16 @@ export class TimelapseService {
         camera.gateway.s3Bucket,
         start,
         end,
+        days,
       ),
     );
 
-    return this.prismaService.timelapse.create({
+    const timelapse = await this.prismaService.timelapse.create({
       data: {
         start: request.start,
         end: request.end,
         timelapseJobID,
+        days,
         camera: {
           connect: {
             id: request.cameraID,
@@ -73,6 +88,13 @@ export class TimelapseService {
         },
       },
     });
+
+    await this.timelapseQueue.add('outgoing', {
+      timelapse,
+      eventType: 'created',
+    });
+
+    return timelapse;
   }
 
   getTimelapse(id: string) {
@@ -114,6 +136,11 @@ export class TimelapseService {
       const fileName = this.getTimelapseFilename(deleted);
       await this.s3Service.deleteFile(fileName, deleted.gateway.s3Bucket);
     }
+
+    await this.timelapseQueue.add('outgoing', {
+      timelapse: deleted,
+      eventType: 'deleted',
+    });
 
     return deleted;
   }
@@ -164,22 +191,35 @@ export class TimelapseService {
       };
     }
 
-    if (!!dateStart) {
+    if (!!dateEnd && !!dateStart) {
+      where = {
+        AND: [
+          {
+            start: {
+              gte: dateStart,
+            },
+          },
+          {
+            end: {
+              lte: dateEnd,
+            },
+          },
+        ],
+      };
+    } else if (!!dateStart) {
       where = {
         ...where,
         start: {
           gte: dateStart,
         },
       };
-
-      if (!!dateEnd) {
-        where = {
-          ...where,
-          end: {
-            lte: dateEnd,
-          },
-        };
-      }
+    } else if (!!dateEnd) {
+      where = {
+        ...where,
+        end: {
+          lte: dateEnd,
+        },
+      };
     }
 
     if (!!cameraID) {
@@ -264,8 +304,8 @@ export class TimelapseService {
     });
   }
 
-  update(id: string, data: any) {
-    return this.prismaService.timelapse.update({
+  async update(id: string, data: any) {
+    const timelapse = await this.prismaService.timelapse.update({
       where: {
         id,
       },
@@ -285,6 +325,13 @@ export class TimelapseService {
         },
       },
     });
+
+    await this.timelapseQueue.add('outgoing', {
+      timelapse,
+      eventType: 'updated',
+    });
+
+    return timelapse;
   }
 
   async getTimelapseDownloadURL(id: string) {
@@ -322,6 +369,134 @@ export class TimelapseService {
 
     return {
       url: `https://${timelapse.gateway.s3Bucket}.copcart-cdn.com/${fileName}`,
+    };
+  }
+
+  async getSnapshotFileNames(
+    cameraID: string,
+    dateStart?: Date,
+    dateEnd?: Date,
+    showAnalyzedOnly?: string,
+    tags?: string[] | string,
+  ) {
+    const camera = await this.prismaService.camera.findFirst({
+      where: {
+        id: cameraID,
+      },
+      select: {
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    if (!camera) return;
+
+    const { where, orderBy } = this.snapshotsService.getSnapshotsFilter(
+      cameraID,
+      undefined,
+      'timestamp',
+      'asc',
+      dateStart,
+      dateEnd,
+      undefined,
+      showAnalyzedOnly,
+      tags,
+    );
+
+    let snapshots = await this.prismaService.snapshot.findMany({
+      where,
+      orderBy,
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (snapshots.length > 2000) {
+      const threshold = Math.round(snapshots.length / 500);
+
+      let counter = 0;
+      snapshots = snapshots
+        .map((snapshot) => {
+          if (counter >= threshold) {
+            counter = 0;
+            return snapshot;
+          }
+
+          counter += 1;
+          return null;
+        })
+        .filter(Boolean);
+    }
+
+    snapshots = snapshots.filter(async (snapshot) => {
+      const fileName = AppHelpers.getFileKey(
+        snapshot.fileName,
+        snapshot.cameraID,
+        '.jpeg',
+      );
+
+      return await this.s3Service.fileExists(fileName, camera.gateway.s3Bucket);
+    });
+
+    const fileNames = snapshots.map((snapshot) => {
+      return snapshot.fileName;
+    });
+
+    let startPreviewURL: string | undefined;
+    let endPreviewURL: string | undefined;
+
+    const getValidSnapshot = async (fromStart = true, index: number = 0) => {
+      const snapshot = snapshots[index];
+      const fileName = AppHelpers.getFileKey(
+        snapshot.fileName,
+        snapshot.cameraID,
+        '.jpeg',
+      );
+
+      const isValid = await this.s3Service.fileExists(
+        fileName,
+        camera.gateway.s3Bucket,
+      );
+      if (fromStart) {
+        if (!isValid) return getValidSnapshot(fromStart, index + 1);
+        return snapshot;
+      } else {
+        if (!isValid) return getValidSnapshot(fromStart, index - 1);
+        return snapshot;
+      }
+    };
+
+    if (snapshots.length > 0) {
+      const firstSnapshot = await getValidSnapshot();
+      const lastSnapshot = await getValidSnapshot(false, snapshots.length - 1);
+
+      startPreviewURL = await this.snapshotsService
+        .getSnapshotDownloadURL(firstSnapshot.id, false)
+        .then((response) => response.url);
+
+      endPreviewURL = await this.snapshotsService
+        .getSnapshotDownloadURL(lastSnapshot.id, false)
+        .then((response) => response.url);
+    }
+
+    return {
+      fileNames,
+      startPreviewURL,
+      endPreviewURL,
     };
   }
 

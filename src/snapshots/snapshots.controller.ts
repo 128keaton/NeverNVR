@@ -260,53 +260,6 @@ export class SnapshotsController {
     );
   }
 
-  @Get('fileNames/:cameraID')
-  @ApiOperation({ summary: 'List snapshot file names for camera' })
-  @ApiResponse({
-    status: 200,
-    description: 'The snapshots for the given camera ID',
-    type: SnapshotsResponse,
-  })
-  @ApiQuery({
-    name: 'dateStart',
-    required: false,
-    example: new Date(),
-    type: Date,
-  })
-  @ApiQuery({
-    name: 'dateEnd',
-    required: false,
-    example: new Date(),
-    type: Date,
-  })
-  @ApiQuery({
-    name: 'showAnalyzedOnly',
-    required: false,
-    type: String,
-    enum: ['true', 'false', ''],
-  })
-  @ApiQuery({
-    name: 'tags',
-    required: false,
-    type: String,
-    isArray: true,
-  })
-  fileNamesForCameraID(
-    @Param('cameraID') cameraID: string,
-    @Query('dateStart') dateStart?: Date,
-    @Query('dateEnd') dateEnd?: Date,
-    @Query('showAnalyzedOnly') showAnalyzedOnly?: string,
-    @Query('tags') tags?: string[] | string,
-  ) {
-    return this.snapshotsService.getSnapshotFileNames(
-      cameraID,
-      dateStart,
-      dateEnd,
-      showAnalyzedOnly,
-      tags,
-    );
-  }
-
   @Get(':snapshotID')
   @ApiOperation({ summary: 'Get a snapshot' })
   getSnapshot(@Param('snapshotID') snapshotID: string) {
