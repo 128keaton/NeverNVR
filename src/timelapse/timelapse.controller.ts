@@ -177,4 +177,10 @@ export class TimelapseController {
       tags,
     );
   }
+
+  @Get('timeBoundaries/:cameraID')
+  @ApiOperation({ summary: 'Get oldest and newest dates available for creating timelapse' })
+  getTimeBoundaries(@Param('cameraID') cameraID: string) {
+    return this.timelapseService.getTimelapseBounds(cameraID);
+  }
 }
