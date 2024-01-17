@@ -7,13 +7,25 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TimelapseService } from './timelapse.service';
 import { TimelapseCreate } from './types';
-import { ApiBody, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { SnapshotsResponse } from '../snapshots/types';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('timelapse')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class TimelapseController {
   constructor(private timelapseService: TimelapseService) {}
 
@@ -179,7 +191,9 @@ export class TimelapseController {
   }
 
   @Get('timeBoundaries/:cameraID')
-  @ApiOperation({ summary: 'Get oldest and newest dates available for creating timelapse' })
+  @ApiOperation({
+    summary: 'Get oldest and newest dates available for creating timelapse',
+  })
   getTimeBoundaries(@Param('cameraID') cameraID: string) {
     return this.timelapseService.getTimelapseBounds(cameraID);
   }
