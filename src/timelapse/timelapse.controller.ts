@@ -1,12 +1,13 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe, Delete,
+  DefaultValuePipe,
+  Delete,
   Get,
   Param,
   Post,
-  Query
-} from "@nestjs/common";
+  Query,
+} from '@nestjs/common';
 import { TimelapseService } from './timelapse.service';
 import { TimelapseCreate } from './types';
 import { ApiBody, ApiOperation, ApiQuery } from '@nestjs/swagger';
