@@ -534,13 +534,12 @@ export class SnapshotsService {
         gateway: {
           select: {
             s3Bucket: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
-    if (!camera)
-      return;
+    if (!camera) return;
 
     const response = await this.getSnapshots(
       cameraID,
@@ -567,11 +566,7 @@ export class SnapshotsService {
     });
 
     const fileNames = snapshots.map((snapshot) => {
-      return AppHelpers.getFileKey(
-        snapshot.fileName,
-        snapshot.cameraID,
-        '.jpeg',
-      );
+      return snapshot.fileName;
     });
 
     let previewURL: string | undefined;

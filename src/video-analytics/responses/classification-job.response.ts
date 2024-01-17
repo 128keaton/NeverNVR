@@ -1,4 +1,4 @@
-export interface JobResponse {
+export interface ClassificationJobResponse {
   bucket_name: string;
   files_processed: string[];
   id: string;

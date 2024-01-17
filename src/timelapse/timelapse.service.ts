@@ -5,6 +5,7 @@ import { Prisma, Timelapse } from '@prisma/client';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { HttpStatusCode } from 'axios';
 import { firstValueFrom } from 'rxjs';
+import { TimelapseCreate } from './types';
 
 @Injectable()
 export class TimelapseService {
@@ -13,15 +14,10 @@ export class TimelapseService {
     private videoAnalyticsService: VideoAnalyticsService,
   ) {}
 
-  async createTimelapse(
-    fileNames: string[],
-    cameraID: string,
-    start: Date,
-    end: Date,
-  ) {
+  async createTimelapse(request: TimelapseCreate) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
-        id: cameraID,
+        id: request.cameraID,
       },
       select: {
         gateway: {
@@ -36,10 +32,13 @@ export class TimelapseService {
     if (!camera || !camera.gateway)
       throw new HttpException('No camera', HttpStatusCode.BadRequest);
 
+    const start = new Date(request.start);
+    const end = new Date(request.end);
+
     const timelapseJobID = await firstValueFrom(
       this.videoAnalyticsService.createTimelapse(
-        fileNames,
-        cameraID,
+        request.fileNames,
+        request.cameraID,
         camera.gateway.s3Bucket,
         start,
         end,
@@ -48,9 +47,12 @@ export class TimelapseService {
 
     return this.prismaService.timelapse.create({
       data: {
+        start: request.start,
+        end: request.end,
+        timelapseJobID,
         camera: {
           connect: {
-            id: cameraID,
+            id: request.cameraID,
           },
         },
         gateway: {
@@ -58,9 +60,6 @@ export class TimelapseService {
             id: camera.gateway.id,
           },
         },
-        start,
-        end,
-        timelapseJobID,
       },
       include: {
         gateway: true,
@@ -198,5 +197,50 @@ export class TimelapseService {
         perPage: pageSize,
       },
     );
+  }
+
+  getByJobID(jobID: string) {
+    return this.prismaService.timelapse.findFirst({
+      where: {
+        timelapseJobID: jobID,
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
+  update(id: string, data: any) {
+    return this.prismaService.timelapse.update({
+      where: {
+        id
+      },
+      data,
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    })
   }
 }
