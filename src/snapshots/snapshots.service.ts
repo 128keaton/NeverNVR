@@ -574,7 +574,30 @@ export class SnapshotsService {
       tags,
     );
 
-    const snapshots = response.data.filter(async (snapshot) => {
+    let snapshots = response.data;
+
+    if (response.data.length > 1000) {
+      const startingCount = response.data.length;
+      const threshold = Math.round(response.data.length / 1000);
+
+      let counter = 0;
+      snapshots = snapshots
+        .map((snapshot) => {
+          if (counter >= threshold) {
+            counter = 0;
+            return snapshot;
+          }
+
+          counter += 1;
+          return null;
+        })
+        .filter(Boolean);
+
+      const endCount = snapshots.length;
+      this.logger.verbose(`Reduced from ${startingCount} to ${endCount}`);
+    }
+
+    snapshots = snapshots.filter(async (snapshot) => {
       const fileName = AppHelpers.getFileKey(
         snapshot.fileName,
         snapshot.cameraID,
