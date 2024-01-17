@@ -562,7 +562,7 @@ export class SnapshotsService {
 
     const response = await this.getSnapshots(
       cameraID,
-      1000,
+      9999999, // FIXME: Arbitrary limit, might have to fix this later
       1,
       undefined,
       'timestamp',
