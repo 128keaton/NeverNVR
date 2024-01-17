@@ -576,9 +576,9 @@ export class SnapshotsService {
 
     let snapshots = response.data;
 
-    if (response.data.length > 1000) {
+    if (response.data.length > 2000) {
       const startingCount = response.data.length;
-      const threshold = Math.round(response.data.length / 1000);
+      const threshold = Math.round(response.data.length / 2000);
 
       let counter = 0;
       snapshots = snapshots
