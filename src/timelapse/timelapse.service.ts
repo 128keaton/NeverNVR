@@ -372,6 +372,78 @@ export class TimelapseService {
     };
   }
 
+  async getOldestSnapshotForCameraID(cameraID: string) {
+    let snapshots = await this.prismaService.snapshot.findMany({
+      where: {
+        cameraID,
+      },
+      orderBy: {
+        timestamp: 'asc'
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+      take: 1
+    });
+
+    return snapshots[0];
+  }
+
+  async getNewestSnapshotForCameraID(cameraID: string) {
+    let snapshots = await this.prismaService.snapshot.findMany({
+      where: {
+        cameraID,
+        availableCloud: true,
+      },
+      orderBy: {
+        timestamp: 'desc'
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+      take: 1
+    });
+
+    return snapshots[0];
+  }
+
+  async getTimelapseBounds(cameraID: string) {
+    const oldest = await this.getOldestSnapshotForCameraID(cameraID);
+    const newest = await this.getNewestSnapshotForCameraID(cameraID);
+
+    const coefficient = 1000 * 60 * 5;
+    const start = new Date(Math.round(new Date(oldest.timestamp).getTime() / coefficient) * coefficient)
+    const end = new Date(Math.round(new Date(newest.timestamp).getTime() / coefficient) * coefficient)
+
+    return {
+      start,
+      end,
+    }
+  }
+
+
   async getSnapshotFileNames(
     cameraID: string,
     dateStart?: Date,
