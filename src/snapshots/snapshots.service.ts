@@ -566,7 +566,7 @@ export class SnapshotsService {
       1,
       undefined,
       'timestamp',
-      'desc',
+      'asc',
       dateStart,
       dateEnd,
       undefined,
