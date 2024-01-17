@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as process from 'process';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const port = parseInt(process.env.PORT || '3000');
@@ -9,6 +10,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
   app.setGlobalPrefix('api', { exclude: [''] });
+
+  app.use(bodyParser.json({ limit: '1024mb' }));
+  app.use(bodyParser.urlencoded({ limit: '1024mb', extended: true }));
 
   if (nodeEnvironment === 'development') {
     const config = new DocumentBuilder()
