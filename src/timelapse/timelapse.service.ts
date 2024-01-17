@@ -373,12 +373,12 @@ export class TimelapseService {
   }
 
   async getOldestSnapshotForCameraID(cameraID: string) {
-    let snapshots = await this.prismaService.snapshot.findMany({
+    const snapshots = await this.prismaService.snapshot.findMany({
       where: {
         cameraID,
       },
       orderBy: {
-        timestamp: 'asc'
+        timestamp: 'asc',
       },
       include: {
         gateway: {
@@ -394,20 +394,20 @@ export class TimelapseService {
           },
         },
       },
-      take: 1
+      take: 1,
     });
 
     return snapshots[0];
   }
 
   async getNewestSnapshotForCameraID(cameraID: string) {
-    let snapshots = await this.prismaService.snapshot.findMany({
+    const snapshots = await this.prismaService.snapshot.findMany({
       where: {
         cameraID,
         availableCloud: true,
       },
       orderBy: {
-        timestamp: 'desc'
+        timestamp: 'desc',
       },
       include: {
         gateway: {
@@ -423,26 +423,47 @@ export class TimelapseService {
           },
         },
       },
-      take: 1
+      take: 1,
     });
 
     return snapshots[0];
   }
 
   async getTimelapseBounds(cameraID: string) {
+    console.log('getTimelapseBounds', cameraID);
     const oldest = await this.getOldestSnapshotForCameraID(cameraID);
     const newest = await this.getNewestSnapshotForCameraID(cameraID);
 
     const coefficient = 1000 * 60 * 5;
-    const start = new Date(Math.round(new Date(oldest.timestamp).getTime() / coefficient) * coefficient)
-    const end = new Date(Math.round(new Date(newest.timestamp).getTime() / coefficient) * coefficient)
+
+    let start = new Date();
+    let end = new Date();
+
+    if (!!oldest)
+      start = new Date(
+        Math.round(new Date(oldest.timestamp).getTime() / coefficient) *
+          coefficient,
+      );
+    else {
+      console.warn('Missing start');
+      start.setDate(start.getDate() - 5);
+    }
+
+    if (!!newest)
+      end = new Date(
+        Math.round(new Date(newest.timestamp).getTime() / coefficient) *
+          coefficient,
+      );
+    else {
+      console.warn('Missing end');
+      end.setDate(end.getDate());
+    }
 
     return {
       start,
       end,
-    }
+    };
   }
-
 
   async getSnapshotFileNames(
     cameraID: string,
