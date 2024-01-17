@@ -299,99 +299,17 @@ export class SnapshotsService {
   ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
-    const orderBy = {};
-    let where: Prisma.SnapshotWhereInput = {};
-
-    if (!!search) {
-      where = {
-        OR: [
-          {
-            camera: {
-              name: {
-                contains: search,
-                mode: 'insensitive',
-              },
-            },
-          },
-          {
-            fileName: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-          {
-            gateway: {
-              name: {
-                contains: search,
-                mode: 'insensitive',
-              },
-            },
-          },
-        ],
-      };
-    }
-
-    if (!!cameraID) {
-      where = {
-        ...where,
-        cameraID,
-      };
-    }
-
-    if (!!gatewayID) {
-      if (gatewayID.includes(',')) {
-        const gatewayIDs = gatewayID.split(',');
-        where = {
-          gatewayID: {
-            in: gatewayIDs,
-          },
-        };
-      } else {
-        where = {
-          ...where,
-          gatewayID,
-        };
-      }
-    }
-
-    if (showAnalyzedOnly === 'true') {
-      where = {
-        ...where,
-        analyzed: true,
-      };
-    }
-
-    if (!!dateStart && !dateEnd) {
-      where = {
-        ...where,
-        timestamp: {
-          gte: dateStart,
-        },
-      };
-    }
-
-    if (!!dateStart && !!dateEnd) {
-      where = {
-        ...where,
-        AND: [
-          {
-            timestamp: {
-              gte: dateStart,
-            },
-          },
-          {
-            timestamp: {
-              lte: dateEnd,
-            },
-          },
-        ],
-      };
-    }
-
-    where = AppHelpers.handleTagsFilter(tags, where);
-
-    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
-    else orderBy['timestamp'] = sortDirection || 'desc';
+    const { where, orderBy } = this.getSnapshotsFilter(
+      cameraID,
+      search,
+      sortBy,
+      sortDirection,
+      dateStart,
+      dateEnd,
+      gatewayID,
+      showAnalyzedOnly,
+      tags,
+    );
 
     return paginate<Snapshot, Prisma.SnapshotFindManyArgs>(
       this.prismaService.snapshot,
@@ -538,104 +456,6 @@ export class SnapshotsService {
     return deleted;
   }
 
-  async getSnapshotFileNames(
-    cameraID: string,
-    dateStart?: Date,
-    dateEnd?: Date,
-    showAnalyzedOnly?: string,
-    tags?: string[] | string,
-  ) {
-    const camera = await this.prismaService.camera.findFirst({
-      where: {
-        id: cameraID,
-      },
-      select: {
-        gateway: {
-          select: {
-            s3Bucket: true,
-          },
-        },
-      },
-    });
-
-    if (!camera) return;
-
-    const response = await this.getSnapshots(
-      cameraID,
-      9999999, // FIXME: Arbitrary limit, might have to fix this later
-      1,
-      undefined,
-      'timestamp',
-      'asc',
-      dateStart,
-      dateEnd,
-      undefined,
-      showAnalyzedOnly,
-      tags,
-    );
-
-    let snapshots = response.data;
-
-    if (response.data.length > 2000) {
-      const startingCount = response.data.length;
-      const threshold = Math.round(response.data.length / 500);
-
-      let counter = 0;
-      snapshots = snapshots
-        .map((snapshot) => {
-          if (counter >= threshold) {
-            counter = 0;
-            return snapshot;
-          }
-
-          counter += 1;
-          return null;
-        })
-        .filter(Boolean);
-
-      const endCount = snapshots.length;
-      this.logger.verbose(`Reduced from ${startingCount} to ${endCount}`);
-    }
-
-    snapshots = snapshots.filter(async (snapshot) => {
-      const fileName = AppHelpers.getFileKey(
-        snapshot.fileName,
-        snapshot.cameraID,
-        '.jpeg',
-      );
-
-      return await this.s3Service.fileExists(fileName, camera.gateway.s3Bucket);
-    });
-
-    const fileNames = snapshots.map((snapshot) => {
-      return snapshot.fileName;
-    });
-
-    let startPreviewURL: string | undefined;
-    let endPreviewURL: string | undefined;
-
-    if (snapshots.length > 0) {
-      const firstSnapshot = snapshots[0];
-      const lastSnapshot = snapshots[snapshots.length - 1];
-
-      startPreviewURL = await this.getSnapshotDownloadURL(
-        firstSnapshot.id,
-        false,
-      ).then((response) => response.url);
-
-      endPreviewURL = await this.getSnapshotDownloadURL(
-        lastSnapshot.id,
-        false,
-      ).then((response) => response.url);
-    }
-
-    return {
-      fileNames,
-      startPreviewURL,
-      endPreviewURL,
-    };
-  }
-
   async getSnapshotDownloadURL(id: string, analyzed = false) {
     const snapshot = await this.prismaService.snapshot.findFirst({
       where: {
@@ -725,5 +545,116 @@ export class SnapshotsService {
         analyticsJobID,
       },
     });
+  }
+
+  getSnapshotsFilter(
+    cameraID?: string,
+    search?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc' | '',
+    dateStart?: Date,
+    dateEnd?: Date,
+    gatewayID?: string,
+    showAnalyzedOnly?: string,
+    tags?: string[] | string,
+  ) {
+    const orderBy: Prisma.SnapshotOrderByWithRelationInput = {};
+    let where: Prisma.SnapshotWhereInput = {};
+
+    if (!!search) {
+      where = {
+        OR: [
+          {
+            camera: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            fileName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
+      };
+    }
+
+    if (!!cameraID) {
+      where = {
+        ...where,
+        cameraID,
+      };
+    }
+
+    if (!!gatewayID) {
+      if (gatewayID.includes(',')) {
+        const gatewayIDs = gatewayID.split(',');
+        where = {
+          gatewayID: {
+            in: gatewayIDs,
+          },
+        };
+      } else {
+        where = {
+          ...where,
+          gatewayID,
+        };
+      }
+    }
+
+    if (showAnalyzedOnly === 'true') {
+      where = {
+        ...where,
+        analyzed: true,
+      };
+    }
+
+    if (!!dateStart && !dateEnd) {
+      where = {
+        ...where,
+        timestamp: {
+          gte: dateStart,
+        },
+      };
+    }
+
+    if (!!dateStart && !!dateEnd) {
+      where = {
+        ...where,
+        AND: [
+          {
+            timestamp: {
+              gte: dateStart,
+            },
+          },
+          {
+            timestamp: {
+              lte: dateEnd,
+            },
+          },
+        ],
+      };
+    }
+
+    where = AppHelpers.handleTagsFilter(tags, where);
+
+    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
+    else orderBy['timestamp'] = sortDirection || 'desc';
+
+    return {
+      where,
+      orderBy,
+    };
   }
 }
