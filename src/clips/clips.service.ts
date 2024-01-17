@@ -382,12 +382,28 @@ export class ClipsService {
             camera: {
               name: {
                 contains: search,
+                mode: 'insensitive',
               },
             },
           },
           {
             primaryTag: {
               contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            fileName: {
+              contains: search,
+              mode: 'insensitive',
             },
           },
         ],
