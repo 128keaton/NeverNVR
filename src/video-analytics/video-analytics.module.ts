@@ -13,6 +13,9 @@ import { BullModule } from '@nestjs/bull';
     BullModule.registerQueue({
       name: 'snapshots',
     }),
+    BullModule.registerQueue({
+      name: 'timelapse',
+    }),
   ],
   exports: [VideoAnalyticsService],
 })

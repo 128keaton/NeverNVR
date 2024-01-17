@@ -1,8 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { ClassificationResponse, JobResponse } from './responses';
-import { catchError, filter, map, of } from 'rxjs';
+import {
+  ClassificationResponse,
+  ClassificationJobResponse,
+  TimelapseJobResponse,
+} from './responses';
+import { catchError, filter, map, Observable, of } from 'rxjs';
 import { AppHelpers } from '../app.helpers';
 import { io, Socket } from 'socket.io-client';
 import { InjectQueue } from '@nestjs/bull';
@@ -25,6 +29,8 @@ export class VideoAnalyticsService {
     private configService: ConfigService,
     private httpService: HttpService,
     @InjectQueue('clips') private clipQueue: Queue,
+    @InjectQueue('timelapse')
+    private timelapseQueue: Queue<{ jobID: string; outputFilename: string }>,
     @InjectQueue('snapshots') private snapshotQueue: Queue,
   ) {
     this.apiURL = this.configService.get('VA_API_URL') || '';
@@ -75,7 +81,7 @@ export class VideoAnalyticsService {
     const videoClipPath = AppHelpers.getFileKey(fileName, cameraID, '.mp4');
 
     return this.httpService
-      .post<JobResponse>(
+      .post<ClassificationJobResponse>(
         url,
         {
           bucket_name: bucketName,
@@ -103,7 +109,7 @@ export class VideoAnalyticsService {
     const imageClipPath = AppHelpers.getFileKey(fileName, cameraID, '.jpeg');
 
     return this.httpService
-      .post<JobResponse>(
+      .post<ClassificationJobResponse>(
         url,
         {
           bucket_name: bucketName,
@@ -132,23 +138,37 @@ export class VideoAnalyticsService {
     bucketName: string,
     start: Date,
     end: Date,
-    days: number,
-  ) {
+  ): Observable<string> {
     const url = `${this.apiURL}/timelapse/create`;
     const imageClipPaths = fileNames.map((fileName) =>
       AppHelpers.getFileKey(fileName, cameraID, '.jpeg'),
     );
 
+    const [startYear, startMonth, startDay] = start
+      .toISOString()
+      .split('T')[0]
+      .split('-');
+    const [endYear, endMonth, endDay] = end
+      .toISOString()
+      .split('T')[0]
+      .split('-');
+
+    const diffTime = Math.abs(start.getTime() - end.getTime());
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    this.logger.log('Creating timelapse job');
+
     return this.httpService
-      .post<JobResponse>(
+      .post<TimelapseJobResponse>(
         url,
         {
+          camera_id: cameraID,
           bucket_name: bucketName,
           request_type: 'timelapse',
           images: imageClipPaths,
           videos: [],
-          start_date: start,
-          end_date: end,
+          start_date: `${startYear}-${startMonth}-${startDay}`,
+          end_date: `${endYear}-${endMonth}-${endDay}`,
           days,
         },
         {
@@ -185,7 +205,7 @@ export class VideoAnalyticsService {
   checkJobStatus(jobID: string) {
     const url = `${this.apiURL}/${jobID}`;
     return this.httpService
-      .get<JobResponse>(url, {
+      .get<ClassificationJobResponse>(url, {
         headers: this.getHeaders(),
       })
       .pipe(
@@ -198,20 +218,38 @@ export class VideoAnalyticsService {
       );
   }
 
-  handleJobStarted(job: JobResponse) {
-    this.logger.verbose(`Analysis job started: ${job.id}`);
-    this.clipQueue.add('started-analyze', job.id, { delay: 1000 }).then();
-    this.snapshotQueue.add('started-analyze', job.id, { delay: 1000 }).then();
+  handleJobStarted(job: ClassificationJobResponse) {
+    if (job.job_type === 'classification') {
+      this.logger.verbose(`Classification job started: ${job.id}`);
+      this.clipQueue.add('started-analyze', job.id, { delay: 1000 }).then();
+      this.snapshotQueue.add('started-analyze', job.id, { delay: 1000 }).then();
+    } else if (job.job_type === 'timelapse') {
+      this.logger.verbose(`Timelapse job started: ${job.id}`);
+    }
   }
 
-  handleJobFinished(job: JobResponse) {
-    this.logger.verbose(`Analysis job finished: ${job.id}`);
-    job.files_processed.forEach((file) => {
-      this.handleJobFileProcessed(file, job);
-    });
+  handleJobFinished(job: ClassificationJobResponse | TimelapseJobResponse) {
+    if (job.job_type === 'classification') {
+      const classificationJob = job as ClassificationJobResponse;
+      this.logger.verbose(`Classification job finished: ${job.id}`);
+      classificationJob.files_processed.forEach((file) => {
+        this.handleJobFileProcessed(file, classificationJob);
+      });
+    } else if (job.job_type === 'timelapse') {
+      const timelapseJob = job as TimelapseJobResponse;
+      this.logger.verbose(`Timelapse job finished: ${job.id}`);
+      this.logger.verbose(JSON.stringify(job));
+
+      if (!!timelapseJob.output_file) {
+        return this.timelapseQueue.add('finished', {
+          jobID: timelapseJob.id,
+          outputFilename: timelapseJob.output_file,
+        });
+      }
+    }
   }
 
-  handleJobFileProcessed(file: string, job: JobResponse) {
+  handleJobFileProcessed(file: string, job: ClassificationJobResponse) {
     this.getClassificationData(file, job.id)
       .pipe(filter(Boolean))
       .subscribe((classification) => {

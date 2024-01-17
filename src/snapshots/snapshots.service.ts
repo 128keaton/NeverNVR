@@ -300,15 +300,34 @@ export class SnapshotsService {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
     const orderBy = {};
-    let where: any = {};
+    let where: Prisma.SnapshotWhereInput = {};
 
     if (!!search) {
       where = {
-        camera: {
-          name: {
-            contains: search,
+        OR: [
+          {
+            camera: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
           },
-        },
+          {
+            fileName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
       };
     }
 
@@ -517,6 +536,73 @@ export class SnapshotsService {
     });
 
     return deleted;
+  }
+
+  async getSnapshotFileNames(
+    cameraID: string,
+    dateStart?: Date,
+    dateEnd?: Date,
+    showAnalyzedOnly?: string,
+    tags?: string[] | string,
+  ) {
+    const camera = await this.prismaService.camera.findFirst({
+      where: {
+        id: cameraID,
+      },
+      select: {
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    if (!camera) return;
+
+    const response = await this.getSnapshots(
+      cameraID,
+      1000,
+      1,
+      undefined,
+      'timestamp',
+      'desc',
+      dateStart,
+      dateEnd,
+      undefined,
+      showAnalyzedOnly,
+      tags,
+    );
+
+    const snapshots = response.data.filter(async (snapshot) => {
+      const fileName = AppHelpers.getFileKey(
+        snapshot.fileName,
+        snapshot.cameraID,
+        '.jpeg',
+      );
+
+      return await this.s3Service.fileExists(fileName, camera.gateway.s3Bucket);
+    });
+
+    const fileNames = snapshots.map((snapshot) => {
+      return snapshot.fileName;
+    });
+
+    let previewURL: string | undefined;
+
+    if (snapshots.length > 0) {
+      const firstSnapshot = snapshots[0];
+
+      previewURL = await this.getSnapshotDownloadURL(
+        firstSnapshot.id,
+        false,
+      ).then((response) => response.url);
+    }
+
+    return {
+      fileNames,
+      previewURL,
+    };
   }
 
   async getSnapshotDownloadURL(id: string, analyzed = false) {

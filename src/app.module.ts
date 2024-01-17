@@ -10,13 +10,13 @@ import { SnapshotsModule } from './snapshots/snapshots.module';
 import { ClipsModule } from './clips/clips.module';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { RouterModule } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { StatsModule } from './stats/stats.module';
 import { VideoAnalyticsModule } from './video-analytics/video-analytics.module';
 import { GatewayEventsModule } from './gateway-events/gateway-events.module';
 import { TimelineModule } from './timeline/timeline.module';
+import { TimelapseModule } from './timelapse/timelapse.module';
 
 @Module({
   imports: [
@@ -41,6 +41,7 @@ import { TimelineModule } from './timeline/timeline.module';
     VideoAnalyticsModule,
     GatewayEventsModule,
     TimelineModule,
+    TimelapseModule,
   ],
 })
 export class AppModule {}
