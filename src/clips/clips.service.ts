@@ -3,8 +3,8 @@ import { PrismaService } from '../services/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { S3Service } from '../services/s3/s3.service';
-import { Clip, ClipEvent } from './type';
-import { ClipFormat, Prisma } from '@prisma/client';
+import { Clip, ClipCreate, ClipEvent, ClipUpdate } from './type';
+import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { HttpStatusCode } from 'axios';
@@ -45,7 +45,6 @@ export class ClipsService {
       const FIVE_MINUTES = 5 * 60 * 1000;
       const FIVE_HOURS = 5 * 60 * 1000 * 60;
 
-      this.logger.verbose(`Clip ${clip.id}`);
       if (!clip.analyzeStart) {
         this.logger.debug('No analyze start on clip');
         await this.update(clip.id, { analyzeStart: new Date() });
@@ -54,7 +53,6 @@ export class ClipsService {
         now.getDate() - new Date(clip.analyzeStart).getDate() < FIVE_HOURS &&
         !!clip.analyticsJobID
       ) {
-        this.logger.debug('Checking job status');
         const job = await lastValueFrom(
           this.videoAnalyticsService.checkJobStatus(clip.analyticsJobID),
         );
@@ -75,7 +73,6 @@ export class ClipsService {
           FIVE_HOURS &&
         !!clip.analyticsJobID
       ) {
-        this.logger.warn('Job has gone one for far too long');
         await this.update(
           clip.id,
           { analyzing: false, analyzeEnd: new Date() },
@@ -117,6 +114,7 @@ export class ClipsService {
         camera: {
           select: {
             name: true,
+            id: true,
           },
         },
       },
@@ -158,7 +156,7 @@ export class ClipsService {
     });
   }
 
-  async create(create: Clip, cameraID: string, emitLocal = true) {
+  async create(create: ClipCreate, cameraID: string, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
         id: cameraID,
@@ -169,26 +167,6 @@ export class ClipsService {
         id: true,
       },
     });
-
-    if (create.availableCloud) {
-      // Disabling video classification for now
-      /*  const gateway = await this.prismaService.gateway.findFirst({
-        where: {
-          id: create.gatewayID,
-        },
-        select: {
-          s3Bucket: true,
-        },
-      });
-
-      analyticsJobID = await lastValueFrom(
-        this.videoAnalyticsService.classifyVideoClip(
-          create.fileName,
-          cameraID,
-          gateway.s3Bucket,
-        ),
-      );*/
-    }
 
     const clip = await this.prismaService.clip
       .create({
@@ -234,45 +212,30 @@ export class ClipsService {
         return err;
       });
 
+    const clipWithURL = {
+      ...clip,
+      url: this.getClipURL(clip),
+    };
+
     if (emitLocal)
       await this.clipQueue.add('outgoing', {
         eventType: 'created',
-        clip,
+        clipWithURL,
         cameraID: clip.cameraID,
       });
 
     this._clipEvents.next({
       eventType: 'created',
-      clip,
+      clip: clipWithURL,
       cameraID: clip.cameraID,
     });
 
-    return clip;
+    return clipWithURL;
   }
 
   async update(
     id: string,
-    clip: {
-      fileName?: string;
-      fileSize?: number;
-      width?: number;
-      height?: number;
-      duration?: number;
-      format?: ClipFormat;
-      start?: Date;
-      end?: Date;
-      processing?: boolean;
-      availableLocally?: boolean;
-      availableCloud?: boolean;
-      analyticsJobID?: string;
-      analyzedFileName?: string;
-      analyzed?: boolean;
-      analyzing?: boolean;
-      analyzeStart?: Date;
-      analyzeEnd?: Date;
-      primaryTag?: string;
-      tags?: string[];
-    },
+    clip: ClipUpdate,
     cameraID?: string,
     gatewayID?: string,
     emitLocal = true,
@@ -342,22 +305,29 @@ export class ClipsService {
       },
     });
 
+    const clipWithURL = {
+      ...updatedClip,
+      url: this.getClipURL(updatedClip),
+    };
+
     if (emitLocal)
       await this.clipQueue.add('outgoing', {
         eventType: 'updated',
-        clip: updatedClip,
-        cameraID: updatedClip.cameraID,
-        gatewayID: updatedClip.gatewayID,
+        clip: clipWithURL,
+        cameraID: clipWithURL.cameraID,
+        gatewayID: clipWithURL.gatewayID,
       });
 
     this._clipEvents.next({
       eventType: 'updated',
-      clip: updatedClip,
-      cameraID: updatedClip.cameraID,
+      clip: clipWithURL,
+      cameraID: clipWithURL.cameraID,
     });
+
+    return clipWithURL;
   }
 
-  getClips(
+  async getClips(
     cameraID?: string,
     pageSize?: number,
     pageNumber?: number,
@@ -447,7 +417,7 @@ export class ClipsService {
     if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
     else orderBy['end'] = sortDirection || 'desc';
 
-    return paginate<Clip, Prisma.ClipFindManyArgs>(
+    const paginationResponse = await paginate<Clip, Prisma.ClipFindManyArgs>(
       this.prismaService.clip,
       {
         where,
@@ -457,6 +427,7 @@ export class ClipsService {
             select: {
               name: true,
               id: true,
+              s3Bucket: true,
             },
           },
           camera: {
@@ -472,10 +443,19 @@ export class ClipsService {
         perPage: pageSize,
       },
     );
+
+    paginationResponse.data = paginationResponse.data.map((clip) => {
+      return {
+        ...clip,
+        url: this.getClipURL(clip),
+      };
+    });
+
+    return paginationResponse;
   }
 
   async getClipsList(clipIDs: string[], availableCloud?: boolean) {
-    return this.prismaService.clip.findMany({
+    const clips = await this.prismaService.clip.findMany({
       where: {
         id: {
           in: clipIDs,
@@ -487,6 +467,7 @@ export class ClipsService {
           select: {
             name: true,
             id: true,
+            s3Bucket: true,
           },
         },
         camera: {
@@ -496,6 +477,13 @@ export class ClipsService {
           },
         },
       },
+    });
+
+    return clips.map((clip) => {
+      return {
+        ...clip,
+        url: this.getClipURL(clip),
+      };
     });
   }
 
@@ -543,7 +531,11 @@ export class ClipsService {
         fileName: true,
         analyzedFileName: true,
         availableCloud: true,
-        cameraID: true,
+        camera: {
+          select: {
+            id: true,
+          },
+        },
         gateway: {
           select: {
             s3Bucket: true,
@@ -570,14 +562,24 @@ export class ClipsService {
         HttpStatusCode.BadRequest,
       );
 
-    const fileKey = AppHelpers.getFileKey(
-      analyzed === true ? clip.analyzedFileName : clip.fileName,
-      clip.cameraID,
-      '.mp4',
-    );
-
     return {
-      url: `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`,
+      url: this.getClipURL(clip, analyzed),
     };
+  }
+
+  private getClipURL(
+    clip: {
+      gateway: { s3Bucket: string };
+      fileName: string;
+      camera: { id: string };
+      analyzedFileName?: string;
+    },
+    analyzed: boolean = false,
+  ) {
+    const fileName =
+      clip.analyzedFileName && analyzed ? clip.analyzedFileName : clip.fileName;
+    const fileKey = AppHelpers.getFileKey(fileName, clip.camera.id, '.mp4');
+
+    return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
   }
 }
