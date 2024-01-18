@@ -7,12 +7,25 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TimelapseService } from './timelapse.service';
 import { TimelapseCreate } from './types';
-import { ApiBody, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('timelapse')
+@ApiTags('Timelapse')
+@UseGuards(AuthGuard(['jwt', 'api-key']))
+@ApiSecurity('api-key')
+@ApiBearerAuth()
 export class TimelapseController {
   constructor(private timelapseService: TimelapseService) {}
 
