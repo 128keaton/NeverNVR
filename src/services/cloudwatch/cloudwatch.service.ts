@@ -28,8 +28,11 @@ export class CloudwatchService {
   }
 
   async getBucketSize(bucket: string) {
-    const eightDaysAgo = new Date();
-    eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
+    const start = new Date();
+    start.setHours(-24, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
 
     const input = {
       MetricDataQueries: [
@@ -51,14 +54,14 @@ export class CloudwatchService {
                 },
               ],
             },
-            Period: 604800,
-            Stat: 'Sum',
+            Period: 86400,
+            Stat: 'Average',
             Unit: StandardUnit.Bytes,
           },
         },
       ],
-      StartTime: eightDaysAgo,
-      EndTime: new Date(),
+      StartTime: start,
+      EndTime: end,
     };
     const command = new GetMetricDataCommand(input);
 
