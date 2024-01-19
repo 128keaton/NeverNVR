@@ -16,10 +16,12 @@ import {
   ApiBody,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { SnapshotsResponse } from '../snapshots/types';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('Timelapse')
 @Controller('timelapse')
