@@ -607,6 +607,7 @@ export class SnapshotsService {
       if (gatewayID.includes(',')) {
         const gatewayIDs = gatewayID.split(',');
         where = {
+          ...where,
           gatewayID: {
             in: gatewayIDs,
           },
