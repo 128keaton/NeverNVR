@@ -571,14 +571,19 @@ export class ClipsService {
     clip: {
       gateway: { s3Bucket: string };
       fileName: string;
-      camera: { id: string };
+      camera: { id?: string };
+      cameraID?: string;
       analyzedFileName?: string;
     },
     analyzed: boolean = false,
   ) {
     const fileName =
       clip.analyzedFileName && analyzed ? clip.analyzedFileName : clip.fileName;
-    const fileKey = AppHelpers.getFileKey(fileName, clip.camera.id, '.mp4');
+    const fileKey = AppHelpers.getFileKey(
+      fileName,
+      clip.camera.id || clip.cameraID,
+      '.mp4',
+    );
 
     return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
   }

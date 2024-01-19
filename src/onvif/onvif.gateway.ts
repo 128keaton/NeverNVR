@@ -5,12 +5,15 @@ import {
 } from '@nestjs/websockets';
 import { MovePayload, PresetPayload, ZoomPayload } from './payloads';
 import { MqttService } from '@vipstorage/nest-mqtt';
+import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
   path: '/onvif.io/',
 })
 export class OnvifGateway {
+  private logger = new Logger(OnvifGateway.name);
+
   constructor(private mqttService: MqttService) {}
 
   @SubscribeMessage('zoom')
@@ -18,6 +21,12 @@ export class OnvifGateway {
     await this.mqttService.publish(
       `never/ptz/${payload.cameraID}/zoom`,
       payload,
+    );
+
+    this.logger.verbose(
+      `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
+        payload.cameraID
+      }/zoom'`,
     );
 
     return { success: true };
@@ -30,6 +39,19 @@ export class OnvifGateway {
       payload,
     );
 
+    this.logger.verbose(
+      `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
+        payload.cameraID
+      }/move'`,
+    );
+
+    setTimeout(async () => {
+      await this.mqttService.publish(
+        `never/ptz/${payload.cameraID}/stop`,
+        payload,
+      );
+    }, 500);
+
     return { success: true };
   }
 
@@ -38,6 +60,12 @@ export class OnvifGateway {
     await this.mqttService.publish(
       `never/ptz/${payload.cameraID}/preset`,
       payload,
+    );
+
+    this.logger.verbose(
+      `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
+        payload.cameraID
+      }/preset'`,
     );
 
     return { success: true };
