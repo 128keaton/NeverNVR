@@ -384,7 +384,7 @@ export class ClipsService {
       where = {
         ...where,
         start: {
-          gte: dateStart,
+          gte: new Date(dateStart),
         },
       };
 
@@ -392,7 +392,7 @@ export class ClipsService {
         where = {
           ...where,
           end: {
-            lte: dateEnd,
+            lte: new Date(dateEnd),
           },
         };
       }
@@ -409,6 +409,7 @@ export class ClipsService {
       if (gatewayID.includes(',')) {
         const gatewayIDs = gatewayID.split(',');
         where = {
+          ...where,
           gatewayID: {
             in: gatewayIDs,
           },
