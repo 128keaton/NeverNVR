@@ -40,4 +40,5 @@ export class GatewayEventsService {
     );
     return !!packet;
   }
+
 }

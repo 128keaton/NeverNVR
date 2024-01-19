@@ -19,10 +19,10 @@ import {
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
+import { SnapshotsResponse } from '../snapshots/types';
 
-@Controller('timelapse')
 @ApiTags('Timelapse')
+@Controller('timelapse')
 @UseGuards(AuthGuard(['jwt', 'api-key']))
 @ApiSecurity('api-key')
 @ApiBearerAuth()
@@ -141,5 +141,60 @@ export class TimelapseController {
       gatewayID,
       showAvailableOnly,
     );
+  }
+
+  @Get('fileNames/:cameraID')
+  @ApiOperation({ summary: 'List available snapshot file names for camera' })
+  @ApiResponse({
+    status: 200,
+    description: 'The snapshots for the given camera ID',
+    type: SnapshotsResponse,
+  })
+  @ApiQuery({
+    name: 'dateStart',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'dateEnd',
+    required: false,
+    example: new Date(),
+    type: Date,
+  })
+  @ApiQuery({
+    name: 'showAnalyzedOnly',
+    required: false,
+    type: String,
+    enum: ['true', 'false', ''],
+  })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    type: String,
+    isArray: true,
+  })
+  fileNamesForCameraID(
+    @Param('cameraID') cameraID: string,
+    @Query('dateStart') dateStart?: Date,
+    @Query('dateEnd') dateEnd?: Date,
+    @Query('showAnalyzedOnly') showAnalyzedOnly?: string,
+    @Query('tags') tags?: string[] | string,
+  ) {
+    return this.timelapseService.getSnapshotFileNames(
+      cameraID,
+      dateStart,
+      dateEnd,
+      showAnalyzedOnly,
+      tags,
+    );
+  }
+
+  @Get('timeBoundaries/:cameraID')
+  @ApiOperation({
+    summary: 'Get oldest and newest dates available for creating timelapse',
+  })
+  getTimeBoundaries(@Param('cameraID') cameraID: string) {
+    return this.timelapseService.getTimelapseBounds(cameraID);
   }
 }

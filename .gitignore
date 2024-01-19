@@ -38,3 +38,5 @@ lerna-debug.log*
 
 client/*
 !client/dist/never_ui/.gitkeep
+
+db/*.dump

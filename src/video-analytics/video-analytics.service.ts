@@ -62,7 +62,7 @@ export class VideoAnalyticsService {
     });
 
     this.videoAnalyticsSocket.on('job_finished', (job) => {
-      this.handleJobFinished(job);
+      return this.handleJobFinished(job);
     });
 
     this.videoAnalyticsSocket.on('job_started', (job) => {
@@ -138,6 +138,7 @@ export class VideoAnalyticsService {
     bucketName: string,
     start: Date,
     end: Date,
+    days: number,
   ): Observable<string> {
     const url = `${this.apiURL}/timelapse/create`;
     const imageClipPaths = fileNames.map((fileName) =>
@@ -152,9 +153,6 @@ export class VideoAnalyticsService {
       .toISOString()
       .split('T')[0]
       .split('-');
-
-    const diffTime = Math.abs(start.getTime() - end.getTime());
-    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     this.logger.log('Creating timelapse job');
 

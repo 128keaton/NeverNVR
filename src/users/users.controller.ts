@@ -13,6 +13,8 @@ import { UsersService } from './users.service';
 import { CreateUserRequest, UpdateUserRequest } from './requests';
 import { ApiBearerAuth, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
 @ApiTags('Users')
@@ -67,7 +69,8 @@ export class UsersController {
   }
 
   @Delete(':userID')
-  @UseGuards(AuthGuard(['jwt', 'api-key']))
+  @UseGuards(AuthGuard(['jwt', 'api-key']), RolesGuard)
+  @Roles('ADMIN')
   delete(@Param('userID') id: string) {
     return this.usersService.delete(id);
   }

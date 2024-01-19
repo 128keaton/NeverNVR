@@ -215,9 +215,6 @@ model Timelapse {
   // Timelapse day count
   days Int @default(0)
 
-  // Timelapse's file format
-  format ClipFormat @default(h265)
-
   // Represents timelapse start
   start DateTime
 
@@ -234,6 +231,8 @@ model Timelapse {
 
   timelapseJobID String
   generating     Boolean @default(true)
+
+  createdAt DateTime @default(now())
 }
 
 model User {
