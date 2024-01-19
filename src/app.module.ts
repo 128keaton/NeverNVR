@@ -17,6 +17,7 @@ import { VideoAnalyticsModule } from './video-analytics/video-analytics.module';
 import { GatewayEventsModule } from './gateway-events/gateway-events.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { TimelapseModule } from './timelapse/timelapse.module';
+import { OnvifModule } from './onvif/onvif.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { TimelapseModule } from './timelapse/timelapse.module';
     GatewayEventsModule,
     TimelineModule,
     TimelapseModule,
+    OnvifModule,
   ],
 })
 export class AppModule {}

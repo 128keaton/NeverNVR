@@ -1,54 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ClipCreate } from './clip.create';
 
-export class Clip {
+export class Clip extends ClipCreate {
   @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  fileName: string;
-
-  @ApiProperty()
-  fileSize: number;
+  camera: {
+    id: string;
+  };
 
   @ApiProperty()
-  width: number;
+  gateway: {
+    s3Bucket: string;
+  };
 
   @ApiProperty()
-  height: number;
-
-  @ApiProperty()
-  duration: number;
-
-  @ApiProperty()
-  format?: 'h265' | 'h264';
-
-  @ApiProperty()
-  start: Date;
-
-  @ApiProperty()
-  end?: Date;
-
-  @ApiProperty()
-  availableLocally: boolean;
-
-  @ApiProperty()
-  availableCloud: boolean;
-
-  @ApiProperty()
-  gatewayID: string;
-
-  @ApiProperty()
-  analyticsJobID?: string;
-
-  @ApiProperty()
-  analyzedFileName?: string;
-
-  @ApiProperty()
-  analyzed: boolean;
-
-  @ApiProperty()
-  primaryTag?: string;
-
-  @ApiProperty()
-  tags: string[];
+  url?: string;
 }

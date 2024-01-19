@@ -339,41 +339,47 @@ export class SnapshotsService {
   }
 
   async update(id: string, data: any, emitLocal = true) {
-    const snapshot = await this.prismaService.snapshot.update({
-      where: {
-        id,
-      },
-      data: {
-        analyticsJobID: data.analyticsJobID,
-        timezone: data.timezone,
-        fileName: data.fileName,
-        fileSize: data.fileSize,
-        width: data.width,
-        height: data.height,
-        timestamp: data.timestamp,
-        availableCloud: data.availableCloud,
-        availableLocally: data.availableLocally,
-        analyzed: data.analyzed,
-        analyzedFileName: data.analyzedFileName,
-        primaryTag: data.primaryTag,
-        tags: data.tags,
-        analyzing: data.analyzing,
-        analyzeStart: data.analyzeStart,
-        analyzeEnd: data.analyzeEnd,
-      },
-      include: {
-        camera: {
-          select: {
-            name: true,
+    const snapshot = await this.prismaService.snapshot
+      .update({
+        where: {
+          id,
+        },
+        data: {
+          analyticsJobID: data.analyticsJobID,
+          timezone: data.timezone,
+          fileName: data.fileName,
+          fileSize: data.fileSize,
+          width: data.width,
+          height: data.height,
+          timestamp: data.timestamp,
+          availableCloud: data.availableCloud,
+          availableLocally: data.availableLocally,
+          analyzed: data.analyzed,
+          analyzedFileName: data.analyzedFileName,
+          primaryTag: data.primaryTag,
+          tags: data.tags,
+          analyzing: data.analyzing,
+          analyzeStart: data.analyzeStart,
+          analyzeEnd: data.analyzeEnd,
+        },
+        include: {
+          camera: {
+            select: {
+              name: true,
+            },
+          },
+          gateway: {
+            select: {
+              name: true,
+            },
           },
         },
-        gateway: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
+      })
+      .catch(() => {
+        return null;
+      });
+
+    if (!snapshot) return;
 
     if (emitLocal)
       await this.snapshotsQueue.add('outgoing', {
