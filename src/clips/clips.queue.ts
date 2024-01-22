@@ -78,6 +78,7 @@ export class ClipsQueue {
       },
       clip.cameraID,
       clip.gatewayID,
+      false,
     );
   }
 
