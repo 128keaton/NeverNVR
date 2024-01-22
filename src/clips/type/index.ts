@@ -7,3 +7,4 @@ export * from './clip.event';
 export * from './clip.type';
 export * from './clip.update';
 export * from './clips.response';
+export * from './concat-clip.create';

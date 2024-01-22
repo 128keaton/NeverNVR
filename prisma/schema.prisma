@@ -15,6 +15,11 @@ enum ClipFormat {
   h264
 }
 
+enum ClipType {
+  recording
+  generated
+}
+
 enum UploadTaskType {
   clip
   snapshot
@@ -175,6 +180,9 @@ model Clip {
   // Clip's file format
   format ClipFormat @default(h265)
 
+  // Clip's type (either a recording or a generated clip)
+  type ClipType @default(recording)
+
   // Represents clip start
   start DateTime @default(now())
 
@@ -202,7 +210,13 @@ model Clip {
   analyzeStart     DateTime?
   analyzeEnd       DateTime?
   primaryTag       String?
-  tags             String[]  @default([])
+
+  generationJobID String?
+  generated       Boolean   @default(false)
+  generateStart   DateTime?
+  generateEnd     DateTime?
+
+  tags String[] @default([])
 }
 
 model Timelapse {

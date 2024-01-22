@@ -11,6 +11,7 @@ import { HttpStatusCode } from 'axios';
 import { lastValueFrom, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ClipsService {
@@ -33,6 +34,7 @@ export class ClipsService {
     const clips = await this.prismaService.clip.findMany({
       where: {
         analyzing: true,
+        type: 'recording',
       },
     });
 
@@ -152,6 +154,14 @@ export class ClipsService {
     return this.prismaService.clip.findFirst({
       where: {
         analyticsJobID,
+      },
+    });
+  }
+
+  getByGenerationJobID(generationJobID: string) {
+    return this.prismaService.clip.findFirst({
+      where: {
+        generationJobID,
       },
     });
   }
@@ -293,6 +303,10 @@ export class ClipsService {
         analyzeEnd: clip.analyzeEnd,
         primaryTag: clip.primaryTag,
         tags: clip.tags,
+        generated: clip.generated,
+        generateStart: clip.generateStart,
+        generateEnd: clip.generateEnd,
+        generationJobID: clip.generationJobID,
       },
       include: {
         gateway: true,
@@ -584,6 +598,91 @@ export class ClipsService {
     };
   }
 
+  async createGeneratedClip(request: { clipIDs: string[]; cameraID: string }) {
+    const camera = await this.prismaService.camera.findFirst({
+      where: {
+        id: request.cameraID,
+      },
+      select: {
+        gateway: {
+          select: {
+            id: true,
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    if (!camera || !camera.gateway)
+      throw new HttpException('No camera', HttpStatusCode.BadRequest);
+
+    const clips = await this.prismaService.clip.findMany({
+      where: {
+        id: {
+          in: request.clipIDs,
+        },
+      },
+      select: {
+        fileName: true,
+      },
+    });
+
+    const jobResponse = await lastValueFrom(
+      this.videoAnalyticsService.concatVideoClips(
+        clips.map((clip) => clip.fileName),
+        request.cameraID,
+        camera.gateway.s3Bucket,
+      ),
+    );
+
+    let generationJobID = undefined;
+    if (jobResponse.id) {
+      generationJobID = jobResponse.id;
+    }
+
+    return this.prismaService.clip.create({
+      data: {
+        id: uuidv4(),
+        type: 'generated',
+        generateStart: new Date(jobResponse.start_time),
+        generated: false,
+        generationJobID,
+        fileName: 'unknown',
+        fileSize: 0,
+        duration: 0,
+        width: 0,
+        height: 0,
+        availableCloud: false,
+        availableLocally: false,
+        gateway: {
+          connect: {
+            id: camera.gateway.id,
+          },
+        },
+        camera: {
+          connect: {
+            id: request.cameraID,
+          },
+        },
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+            s3Bucket: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
   private getClipURL(
     clip: {
       gateway: { s3Bucket: string };
@@ -596,11 +695,21 @@ export class ClipsService {
   ) {
     const fileName =
       clip.analyzedFileName && analyzed ? clip.analyzedFileName : clip.fileName;
-    const fileKey = AppHelpers.getFileKey(
-      fileName,
-      clip.camera.id || clip.cameraID,
-      '.mp4',
-    );
+
+    let fileKey = '';
+
+    if (fileName.includes('alarm')) {
+      fileKey = AppHelpers.getGeneratedAlarmBucketDirectory(
+        fileName,
+        clip.camera.id || clip.cameraID,
+      );
+    } else {
+      fileKey = AppHelpers.getFileKey(
+        fileName,
+        clip.camera.id || clip.cameraID,
+        '.mp4',
+      );
+    }
 
     return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
   }

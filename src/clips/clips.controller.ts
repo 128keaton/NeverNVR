@@ -1,10 +1,12 @@
 import {
+  Body,
   Controller,
   DefaultValuePipe,
   Delete,
   Get,
   Header,
   Param,
+  Post,
   Query,
   UseGuards,
   UseInterceptors,
@@ -12,13 +14,14 @@ import {
 import { ClipsService } from './clips.service';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiQuery,
   ApiResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { ClipsResponse, ClipUrlResponse } from './type';
+import { ClipsResponse, ClipUrlResponse, ConcatClipCreate } from './type';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -242,6 +245,17 @@ export class ClipsController {
       showAnalyzedOnly,
       tags,
     );
+  }
+
+  @Post('concat')
+  @ApiOperation({
+    summary: 'Create a clip which is a created from clips given',
+  })
+  @ApiBody({
+    type: ConcatClipCreate,
+  })
+  createConcatClip(@Body() request: ConcatClipCreate) {
+    return this.clipsService.createGeneratedClip(request);
   }
 
   @Get(':clipID/video.mp4')

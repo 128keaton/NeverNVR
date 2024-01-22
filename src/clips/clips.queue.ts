@@ -60,6 +60,27 @@ export class ClipsQueue {
     );
   }
 
+  @Process('finished-generating')
+  async finishGeneratingClip(
+    job: Job<{ outputFilename: string; jobID: string }>,
+  ) {
+    const clip = await this.clipsService.getByGenerationJobID(job.data.jobID);
+
+    if (!clip) return;
+
+    return this.clipsService.update(
+      clip.id,
+      {
+        generated: true,
+        generateEnd: new Date(),
+        fileName: job.data.outputFilename,
+        availableCloud: true,
+      },
+      clip.cameraID,
+      clip.gatewayID,
+    );
+  }
+
   @Process('started-analyze')
   async startAnalyzingClip(job: Job<string>) {
     const clip = await this.clipsService.getByAnalyticsJobID(job.data);

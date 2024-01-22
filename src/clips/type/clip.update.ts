@@ -58,4 +58,16 @@ export class ClipUpdate {
 
   @ApiProperty()
   tags?: string[];
+
+  @ApiProperty()
+  generated?: boolean;
+
+  @ApiProperty()
+  generateStart?: Date;
+
+  @ApiProperty()
+  generateEnd?: Date;
+
+  @ApiProperty()
+  generationJobID?: string;
 }
