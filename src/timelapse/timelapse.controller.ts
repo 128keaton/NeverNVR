@@ -119,6 +119,11 @@ export class TimelapseController {
     required: false,
     type: String,
   })
+  @ApiQuery({
+    name: 'cameraID',
+    required: false,
+    type: String,
+  })
   getTimelapses(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
@@ -129,10 +134,11 @@ export class TimelapseController {
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
+    @Query('cameraID') cameraID?: string,
     @Query('showAvailableOnly') showAvailableOnly?: string,
   ) {
     return this.timelapseService.getTimelapses(
-      undefined,
+      cameraID,
       pageSize,
       pageNumber,
       search,
