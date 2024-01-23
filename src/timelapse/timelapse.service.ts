@@ -191,35 +191,22 @@ export class TimelapseService {
       };
     }
 
-    if (!!dateEnd && !!dateStart) {
-      where = {
-        AND: [
-          {
-            start: {
-              gte: dateStart,
-            },
-          },
-          {
-            end: {
-              lte: dateEnd,
-            },
-          },
-        ],
-      };
-    } else if (!!dateStart) {
+    if (!!dateStart) {
       where = {
         ...where,
         start: {
-          gte: dateStart,
+          gte: new Date(dateStart),
         },
       };
-    } else if (!!dateEnd) {
-      where = {
-        ...where,
-        end: {
-          lte: dateEnd,
-        },
-      };
+
+      if (!!dateEnd) {
+        where = {
+          ...where,
+          end: {
+            lte: new Date(dateEnd),
+          },
+        };
+      }
     }
 
     if (!!cameraID) {
