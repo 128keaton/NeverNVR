@@ -168,6 +168,12 @@ export class ClipsService {
       },
     });
 
+    if (!camera)
+      throw new HttpException(
+        `Cannot find camera for ID ${cameraID}`,
+        HttpStatusCode.BadRequest,
+      );
+
     const clip = await this.prismaService.clip
       .create({
         data: {
@@ -268,7 +274,11 @@ export class ClipsService {
           tags: clip.tags,
         },
         cameraID,
-      );
+      ).catch((err) => {
+        this.logger.log('Could not create clip:');
+        this.logger.log(err);
+        return null;
+      });
 
     const updatedClip = await this.prismaService.clip.update({
       where: {

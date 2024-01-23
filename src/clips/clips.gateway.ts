@@ -52,15 +52,21 @@ export class ClipsGateway extends CommonGateway {
     if (!payload.gatewayID) return;
 
     this.logger.verbose(`Creating new clip from ${payload.gatewayID}`);
-    return this.clipsService.create(
-      {
-        ...payload.clip,
-        id: payload.id,
-        gatewayID: payload.gatewayID,
-      },
-      payload.cameraID,
-      false,
-    );
+    return this.clipsService
+      .create(
+        {
+          ...payload.clip,
+          id: payload.id,
+          gatewayID: payload.gatewayID,
+        },
+        payload.cameraID,
+        false,
+      )
+      .catch((err) => {
+        this.logger.error('Could not create clip:');
+        this.logger.error(err);
+        return null;
+      });
   }
 
   @Subscribe('never_gateway/clip/+/updated')

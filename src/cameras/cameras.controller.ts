@@ -9,6 +9,7 @@ import {
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Header,
@@ -109,6 +110,35 @@ export class CamerasController {
 
   @Get()
   @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 40,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    example: 0,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    example: 'start',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    example: 'desc',
+    type: String,
+    enum: ['asc', 'desc', ''],
+  })
+  @ApiQuery({
     name: 'gatewayID',
     required: false,
     type: String,
@@ -119,10 +149,23 @@ export class CamerasController {
     description: 'The found records',
     type: CamerasResponse,
   })
-  getMany(@Query('gatewayID') gatewayID?: string) {
-    return this.camerasService.getMany({
+  getMany(
+    @Query('pageSize') pageSize = 40,
+    @Query('pageNumber') pageNumber = 0,
+    @Query('sortBy', new DefaultValuePipe('lastConnection')) sortBy: string,
+    @Query('sortDirection', new DefaultValuePipe('desc'))
+    sortDirection: 'asc' | 'desc' | '',
+    @Query('search') search?: string,
+    @Query('gatewayID') gatewayID?: string,
+  ) {
+    return this.camerasService.getMany(
+      pageSize,
+      pageNumber,
+      search,
+      sortBy,
+      sortDirection,
       gatewayID,
-    });
+    );
   }
 
   @Delete(':id')

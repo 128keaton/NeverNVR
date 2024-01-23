@@ -11,10 +11,11 @@ import {
 } from './types';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, ReplaySubject } from 'rxjs';
-import { ConnectionStatus } from '@prisma/client';
+import { ConnectionStatus, Prisma } from '@prisma/client';
 import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
+import { createPaginator } from 'prisma-pagination';
 
 @Injectable()
 export class CamerasService {
@@ -197,33 +198,78 @@ export class CamerasService {
     );
   }
 
-  async getMany(request?: { gatewayID?: string }) {
-    let where: any = {};
+  async getMany(
+    pageSize?: number,
+    pageNumber?: number,
+    search?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc' | '',
+    gatewayID?: string,
+  ) {
+    const paginate = createPaginator({ perPage: pageSize || 40 });
 
-    if (!!request) {
-      if (request.gatewayID) {
+    const orderBy: Prisma.CameraOrderByWithRelationInput = {};
+    let where: Prisma.CameraWhereInput = {};
+
+    if (!!search) {
+      where = {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
+      };
+    }
+
+    if (!!gatewayID) {
+      if (gatewayID.includes(',')) {
+        const gatewayIDs = gatewayID.split(',');
         where = {
           ...where,
-          gatewayID: request.gatewayID,
+          gatewayID: {
+            in: gatewayIDs,
+          },
+        };
+      } else {
+        where = {
+          ...where,
+          gatewayID,
         };
       }
     }
 
-    const cameras = await this.prismaService.camera.findMany({
-      where,
-      include: {
-        gateway: {
-          select: {
-            name: true,
+    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
+    else orderBy['end'] = sortDirection || 'desc';
+
+    return paginate<Camera, Prisma.CameraFindManyArgs>(
+      this.prismaService.camera,
+      {
+        where,
+        orderBy,
+        include: {
+          gateway: {
+            select: {
+              name: true,
+            },
           },
         },
       },
-    });
-
-    return {
-      total: cameras.length,
-      data: cameras,
-    };
+      {
+        page: pageNumber,
+        perPage: pageSize,
+      },
+    );
   }
 
   async create(create: CameraCreate, emit = true) {

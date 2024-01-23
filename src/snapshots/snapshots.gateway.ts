@@ -57,15 +57,20 @@ export class SnapshotsGateway extends CommonGateway {
       cameraID?: string;
     },
   ) {
-    return this.snapshotsService.create(
-      {
-        ...payload.snapshot,
-        id: payload.id,
-        cameraID: payload.cameraID,
-        gatewayID: payload.gatewayID,
-      },
-      false,
-    );
+    return this.snapshotsService
+      .create(
+        {
+          ...payload.snapshot,
+          id: payload.id,
+          cameraID: payload.cameraID,
+          gatewayID: payload.gatewayID,
+        },
+        false,
+      )
+      .catch((err) => {
+        this.logger.error(err);
+        return null;
+      });
   }
 
   @Subscribe('never_gateway/snapshot/+/deleted')
