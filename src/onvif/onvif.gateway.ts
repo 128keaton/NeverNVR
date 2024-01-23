@@ -48,6 +48,24 @@ export class OnvifGateway {
     return { success: true };
   }
 
+  @SubscribeMessage('stop')
+  async stop(
+    @MessageBody() payload: MovePayload | PresetPayload | ZoomPayload,
+  ) {
+    await this.mqttService.publish(
+      `never/ptz/${payload.cameraID}/stop`,
+      payload,
+    );
+
+    this.logger.verbose(
+      `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
+        payload.cameraID
+      }/stop'`,
+    );
+
+    return { success: true };
+  }
+
   @SubscribeMessage('preset')
   async preset(@MessageBody() payload: PresetPayload) {
     await this.mqttService.publish(
