@@ -29,13 +29,6 @@ export class OnvifGateway {
       }/zoom'`,
     );
 
-    setTimeout(async () => {
-      await this.mqttService.publish(
-        `never/ptz/${payload.cameraID}/stop`,
-        payload,
-      );
-    }, 500);
-
     return { success: true };
   }
 
@@ -51,13 +44,6 @@ export class OnvifGateway {
         payload.cameraID
       }/move'`,
     );
-
-    setTimeout(async () => {
-      await this.mqttService.publish(
-        `never/ptz/${payload.cameraID}/stop`,
-        payload,
-      );
-    }, 500);
 
     return { success: true };
   }
