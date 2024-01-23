@@ -3,7 +3,12 @@ import {
   SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
-import { MovePayload, PresetPayload, ZoomPayload } from './payloads';
+import {
+  MovePayload,
+  PresetPayload,
+  ZoomPayload,
+  StopPayload,
+} from './payloads';
 import { MqttService } from '@vipstorage/nest-mqtt';
 import { Logger } from '@nestjs/common';
 
@@ -49,9 +54,7 @@ export class OnvifGateway {
   }
 
   @SubscribeMessage('stop')
-  async stop(
-    @MessageBody() payload: MovePayload | PresetPayload | ZoomPayload,
-  ) {
+  async stop(@MessageBody() payload: StopPayload) {
     await this.mqttService.publish(
       `never/ptz/${payload.cameraID}/stop`,
       payload,
