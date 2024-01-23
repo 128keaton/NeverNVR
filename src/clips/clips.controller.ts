@@ -1,10 +1,12 @@
 import {
+  Body,
   Controller,
   DefaultValuePipe,
   Delete,
   Get,
   Header,
   Param,
+  Post,
   Query,
   UseGuards,
   UseInterceptors,
@@ -12,13 +14,19 @@ import {
 import { ClipsService } from './clips.service';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiQuery,
   ApiResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { ClipsResponse, ClipUrlResponse } from './type';
+import {
+  ClipsRequest,
+  ClipsResponse,
+  ClipsUploadRequest,
+  ClipUrlResponse,
+} from './type';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -285,9 +293,33 @@ export class ClipsController {
     return this.clipsService.getClip(clipID);
   }
 
+  @Get(':clipID/request')
+  @ApiOperation({ summary: 'Request a clip' })
+  requestClip(@Param('clipID') clipID: string) {
+    return this.clipsService.requestClipUpload(clipID);
+  }
+
   @Delete(':clipID')
   @ApiOperation({ summary: 'Delete a clip' })
   deleteClip(@Param('clipID') clipID: string) {
     return this.clipsService.delete(clipID);
+  }
+
+  @Post('upload')
+  @ApiOperation({ summary: 'Request clips to be uploaded from a gateway' })
+  @ApiBody({
+    type: ClipsUploadRequest,
+  })
+  uploadClips(@Body() request: ClipsUploadRequest) {
+    return this.clipsService.uploadClips(request.gatewayID, request.clips);
+  }
+
+  @Post('request')
+  @ApiOperation({ summary: 'Find clips to be requested then uploaded' })
+  @ApiBody({
+    type: ClipsRequest,
+  })
+  findClipsRequestUpload(@Body() request: ClipsRequest) {
+    return this.clipsService.requestClips(request.gatewayID, request);
   }
 }

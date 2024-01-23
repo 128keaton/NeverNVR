@@ -14,6 +14,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import type { RedisClientOptions } from 'redis';
 import { StoreConfig } from 'cache-manager';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   providers: [ClipsService, ClipsGateway, ClipsQueue],
@@ -26,6 +27,7 @@ import { StoreConfig } from 'cache-manager';
     BullModule.registerQueue({
       name: 'clips',
     }),
+    HttpModule,
     CacheModule.registerAsync<RedisClientOptions>({
       imports: [ConfigModule],
       inject: [ConfigService],

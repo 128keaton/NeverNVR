@@ -7,10 +7,12 @@ import { Clip, ClipCreate, ClipEvent, ClipUpdate } from './type';
 import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
-import { HttpStatusCode } from 'axios';
-import { lastValueFrom, ReplaySubject } from 'rxjs';
+import { AxiosRequestConfig, HttpStatusCode } from 'axios';
+import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
+import { GatewayDiskSpace } from '../gateways/types';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class ClipsService {
@@ -22,6 +24,7 @@ export class ClipsService {
   }
 
   constructor(
+    private httpService: HttpService,
     private s3Service: S3Service,
     private prismaService: PrismaService,
     private videoAnalyticsService: VideoAnalyticsService,
@@ -481,6 +484,79 @@ export class ClipsService {
     return paginationResponse;
   }
 
+  async requestClips(
+    gatewayID: string,
+    request: { cameraID?: string; dateStart?: Date; dateEnd?: Date },
+  ) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id: gatewayID,
+      },
+      select: {
+        connectionToken: true,
+        connectionURL: true,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Cannot find gateway for ID ${gatewayID}`,
+        HttpStatusCode.BadRequest,
+      );
+
+    return lastValueFrom(
+      this.httpService
+        .post(
+          `${gateway.connectionURL}/api/clips/request`,
+          request,
+          this.getGatewayConfig(gateway.connectionToken),
+        )
+        .pipe(map((response) => response.data)),
+    );
+  }
+
+  async uploadClips(gatewayID: string, clips: string[]) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id: gatewayID,
+      },
+      select: {
+        connectionToken: true,
+        connectionURL: true,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Cannot find gateway for ID ${gatewayID}`,
+        HttpStatusCode.BadRequest,
+      );
+
+    return lastValueFrom(
+      this.httpService
+        .post(
+          `${gateway.connectionURL}/api/clips/upload`,
+          { clips },
+          this.getGatewayConfig(gateway.connectionToken),
+        )
+        .pipe(map((response) => response.data)),
+    );
+  }
+
+  async requestClipUpload(id: string) {
+    const clip = await this.prismaService.clip.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        gatewayID: true,
+        id: true,
+      },
+    });
+
+    return this.uploadClips(clip.gatewayID, [clip.id]);
+  }
+
   async getClipsList(clipIDs: string[], availableCloud?: boolean) {
     const clips = await this.prismaService.clip.findMany({
       where: {
@@ -613,5 +689,13 @@ export class ClipsService {
     );
 
     return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
+  }
+
+  private getGatewayConfig(apiKey: string): AxiosRequestConfig {
+    return {
+      headers: {
+        'api-key': apiKey,
+      },
+    };
   }
 }
