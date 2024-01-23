@@ -243,8 +243,6 @@ export class TimelapseService {
     if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
     else orderBy['end'] = sortDirection || 'desc';
 
-    console.log(where);
-
     return paginate<Timelapse, Prisma.TimelapseFindManyArgs>(
       this.prismaService.timelapse,
       {
