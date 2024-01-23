@@ -97,11 +97,13 @@ model Camera {
   lastConnection DateTime?
 
   // Gateway this  camera belongs to
-  gateway   Gateway? @relation(fields: [gatewayID], references: [id])
-  gatewayID String?  @db.Uuid
+  gateway   Gateway @relation(fields: [gatewayID], references: [id])
+  gatewayID String  @db.Uuid
 
   synchronized Boolean     @default(false)
   timelapses   Timelapse[]
+
+  @@unique([name, gatewayID])
 }
 
 model Snapshot {
