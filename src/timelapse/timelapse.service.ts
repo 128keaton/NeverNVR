@@ -218,7 +218,7 @@ export class TimelapseService {
 
     if (!!gatewayID) {
       if (gatewayID.includes(',')) {
-        const gatewayIDs = gatewayID.split(',');
+        const gatewayIDs = gatewayID.split(',').filter((id) => id.length);
         where = {
           ...where,
           gatewayID: {
