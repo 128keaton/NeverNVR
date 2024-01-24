@@ -44,6 +44,7 @@ export class GatewaysService {
         cameras: {
           select: {
             id: true,
+            name: true,
           },
         },
       },

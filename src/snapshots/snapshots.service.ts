@@ -299,6 +299,8 @@ export class SnapshotsService {
   ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
+    if (!!cameraID && cameraID.length === 0) cameraID = undefined;
+
     const { where, orderBy } = this.getSnapshotsFilter(
       cameraID,
       search,
@@ -605,7 +607,7 @@ export class SnapshotsService {
 
     if (!!gatewayID) {
       if (gatewayID.includes(',')) {
-        const gatewayIDs = gatewayID.split(',');
+        const gatewayIDs = gatewayID.split(',').filter((id) => id.length);
         where = {
           ...where,
           gatewayID: {
