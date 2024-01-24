@@ -8,7 +8,7 @@ import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
-import { lastValueFrom, map, ReplaySubject } from 'rxjs';
+import { lastValueFrom, map, of, ReplaySubject, switchMap } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
@@ -264,33 +264,10 @@ export class ClipsService {
       },
     });
 
-    if (!existingClip)
-      return this.create(
-        {
-          gatewayID,
-          id,
-          duration: clip.duration,
-          fileName: clip.fileName,
-          fileSize: clip.fileSize,
-          width: clip.width,
-          height: clip.height,
-          format: clip.format,
-          start: clip.start,
-          end: clip.end,
-          availableLocally: clip.availableLocally,
-          availableCloud: clip.availableCloud,
-          analyticsJobID: clip.analyticsJobID,
-          analyzedFileName: clip.analyzedFileName,
-          analyzed: clip.analyzed,
-          primaryTag: clip.primaryTag,
-          tags: clip.tags,
-        },
-        cameraID,
-      ).catch((err) => {
-        this.logger.log('Could not create clip:');
-        this.logger.log(err);
-        return null;
-      });
+    if (!existingClip) {
+      this.logger.warn(`Could not find clip with ID ${id}`);
+      return;
+    }
 
     const updatedClip = await this.prismaService.clip.update({
       where: {
@@ -319,6 +296,7 @@ export class ClipsService {
         generateStart: clip.generateStart,
         generateEnd: clip.generateEnd,
         generationJobID: clip.generationJobID,
+        requested: clip.requested,
       },
       include: {
         gateway: true,
@@ -539,24 +517,35 @@ export class ClipsService {
       },
     });
 
+    this.logger.verbose(`uploadClips: ${JSON.stringify(clips)}`)
+
     if (!gateway)
       throw new HttpException(
         `Cannot find gateway for ID ${gatewayID}`,
         HttpStatusCode.BadRequest,
       );
 
-    return lastValueFrom(
+    const totalUpdated = await lastValueFrom(
       this.httpService
-        .post(
+        .post<{ success: boolean }>(
           `${gateway.connectionURL}/api/clips/upload`,
           { clips },
           this.getGatewayConfig(gateway.connectionToken),
         )
-        .pipe(map((response) => response.data)),
+        .pipe(
+          map((response) => response.data.success),
+          switchMap((success) => {
+            if (success) return this.updateManyRequested(clips);
+            else return of(0);
+          }),
+        ),
     );
+
+    return { totalUpdated };
   }
 
   async requestClipUpload(id: string) {
+    this.logger.verbose(`Request clip upload: ${id}`);
     const clip = await this.prismaService.clip.findFirst({
       where: {
         id,
@@ -568,6 +557,19 @@ export class ClipsService {
     });
 
     return this.uploadClips(clip.gatewayID, [clip.id]);
+  }
+
+  async updateManyRequested(clips: string[]) {
+    let totalUpdated = 0;
+    for (const clipID of clips) {
+      await this.update(clipID, {
+        requested: true,
+      }).then(() => {
+        totalUpdated += 1;
+      });
+    }
+
+    return totalUpdated;
   }
 
   async getClipsList(clipIDs: string[], availableCloud?: boolean) {

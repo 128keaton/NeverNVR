@@ -70,4 +70,7 @@ export class ClipUpdate {
 
   @ApiProperty()
   generationJobID?: string;
+
+  @ApiProperty()
+  requested?: boolean;
 }

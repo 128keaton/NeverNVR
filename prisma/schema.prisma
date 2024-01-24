@@ -218,7 +218,8 @@ model Clip {
   generateStart   DateTime?
   generateEnd     DateTime?
 
-  tags String[] @default([])
+  requested Boolean  @default(false)
+  tags      String[] @default([])
 }
 
 model Timelapse {
