@@ -102,7 +102,7 @@ export class ClipsController {
     type: String,
   })
   @ApiQuery({
-    name: 'showAnalyzedOnly',
+    name: 'showAvailableOnly',
     required: false,
     type: String,
     enum: ['true', 'false', ''],
@@ -123,8 +123,8 @@ export class ClipsController {
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
-    @Query('showAnalyzedOnly')
-    showAnalyzedOnly?: string,
+    @Query('showAvailableOnly')
+    showAvailableOnly?: string,
     @Query('tags') tags?: string[] | string,
   ) {
     return this.clipsService.getClips(
@@ -137,7 +137,7 @@ export class ClipsController {
       dateStart,
       dateEnd,
       gatewayID,
-      showAnalyzedOnly,
+      showAvailableOnly,
       tags,
     );
   }
@@ -211,7 +211,7 @@ export class ClipsController {
     type: String,
   })
   @ApiQuery({
-    name: 'showAnalyzedOnly',
+    name: 'showAvailableOnly',
     required: false,
     type: String,
     enum: ['true', 'false', ''],
@@ -233,8 +233,8 @@ export class ClipsController {
     @Query('dateStart') dateStart?: Date,
     @Query('dateEnd') dateEnd?: Date,
     @Query('gatewayID') gatewayID?: string,
-    @Query('showAnalyzedOnly')
-    showAnalyzedOnly?: string,
+    @Query('showAvailableOnly')
+    showAvailableOnly?: string,
     @Query('tags') tags?: string[] | string,
   ) {
     return this.clipsService.getClips(
@@ -247,7 +247,7 @@ export class ClipsController {
       dateStart,
       dateEnd,
       gatewayID,
-      showAnalyzedOnly,
+      showAvailableOnly,
       tags,
     );
   }

@@ -349,7 +349,7 @@ export class ClipsService {
     dateStart?: Date,
     dateEnd?: Date,
     gatewayID?: string,
-    showAnalyzedOnly?: string,
+    showAvailableOnly?: string,
     tags?: string[] | string,
   ) {
     const paginate = createPaginator({ perPage: pageSize || 40 });
@@ -434,10 +434,10 @@ export class ClipsService {
       }
     }
 
-    if (showAnalyzedOnly === 'true') {
+    if (showAvailableOnly === 'true') {
       where = {
         ...where,
-        analyzed: true,
+        availableCloud: true,
       };
     }
 
