@@ -18,10 +18,19 @@ import { GatewayEventsModule } from './gateway-events/gateway-events.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { TimelapseModule } from './timelapse/timelapse.module';
 import { OnvifModule } from './onvif/onvif.module';
+import { AppExceptionsFilter } from './app.exceptions';
+import { APP_FILTER } from '@nestjs/core';
+import { AppLogger } from './app.logger';
+import { LoggerModule } from 'nestjs-pino';
+import { loggerConfig } from './config/logger.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LoggerModule.forRootAsync({
+      useFactory: (configService: ConfigService) => loggerConfig(configService),
+      inject: [ConfigService],
+    }),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => bullConfig(configService),
@@ -45,5 +54,15 @@ import { OnvifModule } from './onvif/onvif.module';
     TimelapseModule,
     OnvifModule,
   ],
+  providers: [
+    AppLogger,
+    {
+      provide: APP_FILTER,
+      useClass: AppExceptionsFilter,
+    },
+  ],
 })
 export class AppModule {}
+// function loggerConfig(configService: ConfigService<Record<string, unknown>, false>): import("nestjs-pino").Params | Promise<import("nestjs-pino").Params> {
+//     throw new Error('Function not implemented.');
+// }

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginRequest, RegisterRequest } from './requests';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -10,6 +19,7 @@ import { Request } from 'express';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   @ApiBody({
     type: LoginRequest,
