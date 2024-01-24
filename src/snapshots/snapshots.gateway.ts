@@ -32,8 +32,6 @@ export class SnapshotsGateway extends CommonGateway {
       ...event.create,
     };
 
-    delete snapshot.gatewayID;
-
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
 
