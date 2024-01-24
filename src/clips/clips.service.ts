@@ -11,7 +11,6 @@ import { AxiosRequestConfig, HttpStatusCode } from 'axios';
 import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
-import { GatewayDiskSpace } from '../gateways/types';
 import { HttpService } from '@nestjs/axios';
 
 @Injectable()
@@ -420,7 +419,7 @@ export class ClipsService {
 
     if (!!gatewayID) {
       if (gatewayID.includes(',')) {
-        const gatewayIDs = gatewayID.split(',');
+        const gatewayIDs = gatewayID.split(',').filter((id) => id.length);
         where = {
           ...where,
           gatewayID: {
