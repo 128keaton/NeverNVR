@@ -216,6 +216,8 @@ export class ClipsService {
           gateway: {
             select: {
               name: true,
+              s3Bucket: true,
+              id: true,
             },
           },
           camera: {
@@ -516,8 +518,6 @@ export class ClipsService {
         connectionURL: true,
       },
     });
-
-    this.logger.verbose(`uploadClips: ${JSON.stringify(clips)}`)
 
     if (!gateway)
       throw new HttpException(
