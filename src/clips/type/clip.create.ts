@@ -51,4 +51,7 @@ export class ClipCreate {
 
   @ApiProperty()
   tags: string[];
+
+  @ApiProperty()
+  requested?: boolean;
 }

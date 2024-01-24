@@ -5,6 +5,7 @@ import {
   ClassificationResponse,
   ClassificationJobResponse,
   TimelapseJobResponse,
+  ConcatJobResponse,
 } from './responses';
 import { catchError, filter, map, Observable, of } from 'rxjs';
 import { AppHelpers } from '../app.helpers';
@@ -96,6 +97,36 @@ export class VideoAnalyticsService {
       .pipe(
         map((response) => response.data),
         map((data) => data.id),
+        catchError((err) => {
+          this.logger.error(err);
+
+          return of(null);
+        }),
+      );
+  }
+
+  concatVideoClips(fileNames: string[], cameraID: string, bucketName: string) {
+    const url = `${this.apiURL}/concat/create`;
+    const videoClipPaths = fileNames.map((fileName) =>
+      AppHelpers.getFileKey(fileName, cameraID, '.mp4'),
+    );
+
+    return this.httpService
+      .post<ConcatJobResponse>(
+        url,
+        {
+          bucket_name: bucketName,
+          request_type: 'concat',
+          images: [],
+          videos: videoClipPaths,
+          camera_id: cameraID,
+        },
+        {
+          headers: this.getHeaders(),
+        },
+      )
+      .pipe(
+        map((response) => response.data),
         catchError((err) => {
           this.logger.error(err);
 
@@ -226,7 +257,9 @@ export class VideoAnalyticsService {
     }
   }
 
-  handleJobFinished(job: ClassificationJobResponse | TimelapseJobResponse) {
+  handleJobFinished(
+    job: ClassificationJobResponse | TimelapseJobResponse | ConcatJobResponse,
+  ) {
     if (job.job_type === 'classification') {
       const classificationJob = job as ClassificationJobResponse;
       this.logger.verbose(`Classification job finished: ${job.id}`);
@@ -244,6 +277,12 @@ export class VideoAnalyticsService {
           outputFilename: timelapseJob.output_file,
         });
       }
+    } else if (job.job_type === 'concat') {
+      const concatJob = job as ConcatJobResponse;
+      return this.clipQueue.add('finished-generating', {
+        jobID: concatJob.id,
+        outputFilename: concatJob.output_file,
+      });
     }
   }
 

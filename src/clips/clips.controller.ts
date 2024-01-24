@@ -26,6 +26,7 @@ import {
   ClipsResponse,
   ClipsUploadRequest,
   ClipUrlResponse,
+  ConcatClipCreate,
 } from './type';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AuthGuard } from '@nestjs/passport';
@@ -250,6 +251,17 @@ export class ClipsController {
       showAvailableOnly,
       tags,
     );
+  }
+
+  @Post('concat')
+  @ApiOperation({
+    summary: 'Create a clip which is a created from clips given',
+  })
+  @ApiBody({
+    type: ConcatClipCreate,
+  })
+  createConcatClip(@Body() request: ConcatClipCreate) {
+    return this.clipsService.createGeneratedClip(request);
   }
 
   @Get(':clipID/video.mp4')

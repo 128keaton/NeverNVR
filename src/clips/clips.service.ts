@@ -8,9 +8,10 @@ import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
-import { lastValueFrom, map, ReplaySubject } from 'rxjs';
+import { lastValueFrom, map, of, ReplaySubject, switchMap } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
+import { v4 as uuidv4 } from 'uuid';
 import { HttpService } from '@nestjs/axios';
 
 @Injectable()
@@ -35,6 +36,7 @@ export class ClipsService {
     const clips = await this.prismaService.clip.findMany({
       where: {
         analyzing: true,
+        type: 'recording',
       },
     });
 
@@ -158,6 +160,14 @@ export class ClipsService {
     });
   }
 
+  getByGenerationJobID(generationJobID: string) {
+    return this.prismaService.clip.findFirst({
+      where: {
+        generationJobID,
+      },
+    });
+  }
+
   async create(create: ClipCreate, cameraID: string, emitLocal = true) {
     const camera = await this.prismaService.camera.findFirst({
       where: {
@@ -254,33 +264,10 @@ export class ClipsService {
       },
     });
 
-    if (!existingClip)
-      return this.create(
-        {
-          gatewayID,
-          id,
-          duration: clip.duration,
-          fileName: clip.fileName,
-          fileSize: clip.fileSize,
-          width: clip.width,
-          height: clip.height,
-          format: clip.format,
-          start: clip.start,
-          end: clip.end,
-          availableLocally: clip.availableLocally,
-          availableCloud: clip.availableCloud,
-          analyticsJobID: clip.analyticsJobID,
-          analyzedFileName: clip.analyzedFileName,
-          analyzed: clip.analyzed,
-          primaryTag: clip.primaryTag,
-          tags: clip.tags,
-        },
-        cameraID,
-      ).catch((err) => {
-        this.logger.log('Could not create clip:');
-        this.logger.log(err);
-        return null;
-      });
+    if (!existingClip) {
+      this.logger.warn(`Could not find clip with ID ${id}`);
+      return;
+    }
 
     const updatedClip = await this.prismaService.clip.update({
       where: {
@@ -305,6 +292,11 @@ export class ClipsService {
         analyzeEnd: clip.analyzeEnd,
         primaryTag: clip.primaryTag,
         tags: clip.tags,
+        generated: clip.generated,
+        generateStart: clip.generateStart,
+        generateEnd: clip.generateEnd,
+        generationJobID: clip.generationJobID,
+        requested: clip.requested,
       },
       include: {
         gateway: true,
@@ -525,24 +517,35 @@ export class ClipsService {
       },
     });
 
+    this.logger.verbose(`uploadClips: ${JSON.stringify(clips)}`)
+
     if (!gateway)
       throw new HttpException(
         `Cannot find gateway for ID ${gatewayID}`,
         HttpStatusCode.BadRequest,
       );
 
-    return lastValueFrom(
+    const totalUpdated = await lastValueFrom(
       this.httpService
-        .post(
+        .post<{ success: boolean }>(
           `${gateway.connectionURL}/api/clips/upload`,
           { clips },
           this.getGatewayConfig(gateway.connectionToken),
         )
-        .pipe(map((response) => response.data)),
+        .pipe(
+          map((response) => response.data.success),
+          switchMap((success) => {
+            if (success) return this.updateManyRequested(clips);
+            else return of(0);
+          }),
+        ),
     );
+
+    return { totalUpdated };
   }
 
   async requestClipUpload(id: string) {
+    this.logger.verbose(`Request clip upload: ${id}`);
     const clip = await this.prismaService.clip.findFirst({
       where: {
         id,
@@ -554,6 +557,19 @@ export class ClipsService {
     });
 
     return this.uploadClips(clip.gatewayID, [clip.id]);
+  }
+
+  async updateManyRequested(clips: string[]) {
+    let totalUpdated = 0;
+    for (const clipID of clips) {
+      await this.update(clipID, {
+        requested: true,
+      }).then(() => {
+        totalUpdated += 1;
+      });
+    }
+
+    return totalUpdated;
   }
 
   async getClipsList(clipIDs: string[], availableCloud?: boolean) {
@@ -669,6 +685,91 @@ export class ClipsService {
     };
   }
 
+  async createGeneratedClip(request: { clipIDs: string[]; cameraID: string }) {
+    const camera = await this.prismaService.camera.findFirst({
+      where: {
+        id: request.cameraID,
+      },
+      select: {
+        gateway: {
+          select: {
+            id: true,
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    if (!camera || !camera.gateway)
+      throw new HttpException('No camera', HttpStatusCode.BadRequest);
+
+    const clips = await this.prismaService.clip.findMany({
+      where: {
+        id: {
+          in: request.clipIDs,
+        },
+      },
+      select: {
+        fileName: true,
+      },
+    });
+
+    const jobResponse = await lastValueFrom(
+      this.videoAnalyticsService.concatVideoClips(
+        clips.map((clip) => clip.fileName),
+        request.cameraID,
+        camera.gateway.s3Bucket,
+      ),
+    );
+
+    let generationJobID = undefined;
+    if (jobResponse.id) {
+      generationJobID = jobResponse.id;
+    }
+
+    return this.prismaService.clip.create({
+      data: {
+        id: uuidv4(),
+        type: 'generated',
+        generateStart: new Date(jobResponse.start_time),
+        generated: false,
+        generationJobID,
+        fileName: 'unknown',
+        fileSize: 0,
+        duration: 0,
+        width: 0,
+        height: 0,
+        availableCloud: false,
+        availableLocally: false,
+        gateway: {
+          connect: {
+            id: camera.gateway.id,
+          },
+        },
+        camera: {
+          connect: {
+            id: request.cameraID,
+          },
+        },
+      },
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+            s3Bucket: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
   private getClipURL(
     clip: {
       gateway: { s3Bucket: string };
@@ -681,11 +782,21 @@ export class ClipsService {
   ) {
     const fileName =
       clip.analyzedFileName && analyzed ? clip.analyzedFileName : clip.fileName;
-    const fileKey = AppHelpers.getFileKey(
-      fileName,
-      clip.camera.id || clip.cameraID,
-      '.mp4',
-    );
+
+    let fileKey = '';
+
+    if (fileName.includes('alarm')) {
+      fileKey = AppHelpers.getGeneratedAlarmBucketDirectory(
+        fileName,
+        clip.camera.id || clip.cameraID,
+      );
+    } else {
+      fileKey = AppHelpers.getFileKey(
+        fileName,
+        clip.camera.id || clip.cameraID,
+        '.mp4',
+      );
+    }
 
     return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
   }

@@ -24,6 +24,16 @@ export class AppHelpers {
     return join(yearMonthDay, cameraID, typeDirectory);
   }
 
+  static getGeneratedAlarmBucketDirectory(fileName: string, cameraID: string) {
+    const rawDateString = fileName
+      .replace(`${cameraID}-`, '')
+      .replace('alarm', '')
+      .split('_');
+
+    const yearMonthDay = rawDateString[0];
+    return join(yearMonthDay, cameraID, 'alarms');
+  }
+
   static handleTagsFilter(tags: string[] | string | undefined, where: any) {
     if (!!tags && tags.length) {
       if (Array.isArray(tags)) {

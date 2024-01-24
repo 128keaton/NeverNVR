@@ -9,3 +9,4 @@ export * from './clip.update';
 export * from './clips-request.request';
 export * from './clips-upload.request';
 export * from './clips.response';
+export * from './concat-clip.create';
