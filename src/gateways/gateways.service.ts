@@ -51,24 +51,40 @@ export class GatewaysService {
     });
   }
 
+  async restartJanus(gatewayID: string) {
+    const gateway = await this.getGateway(gatewayID);
+
+    return lastValueFrom(
+      this.httpService
+        .get(
+          `${gateway.connectionURL}/api/system/restart/janus`,
+          this.getConfig(gateway.connectionToken),
+        )
+        .pipe(
+          map((response) => {
+            return {
+              success: response.status === 200,
+            };
+          }),
+        ),
+    );
+  }
+
+  async getJanusOutput(gatewayID: string) {
+    const gateway = await this.getGateway(gatewayID);
+
+    return lastValueFrom(
+      this.httpService
+        .get<string>(
+          `${gateway.connectionURL}/api/system/logs/janus`,
+          this.getConfig(gateway.connectionToken),
+        )
+        .pipe(map((response) => response.data)),
+    );
+  }
+
   async getGatewayStats(gatewayID: string) {
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id: gatewayID,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${gatewayID}`,
-        HttpStatus.NOT_FOUND,
-      );
-
-    if (gateway.status === 'DISCONNECTED')
-      throw new HttpException(
-        `Gateway is disconnected ${gatewayID}`,
-        HttpStatus.BAD_REQUEST,
-      );
+    const gateway = await this.getGateway(gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -80,18 +96,8 @@ export class GatewaysService {
     );
   }
 
-  async getDiskSpace(id: string) {
-    const gateway = await this.prismaService.gateway.findFirst({
-      where: {
-        id,
-      },
-    });
-
-    if (!gateway)
-      throw new HttpException(
-        `Could not find gateway with ID ${id}`,
-        HttpStatus.NOT_FOUND,
-      );
+  async getDiskSpace(gatewayID: string) {
+    const gateway = await this.getGateway(gatewayID);
 
     return lastValueFrom(
       this.httpService
@@ -198,6 +204,28 @@ export class GatewaysService {
       gateway,
       id: gateway.id,
     });
+
+    return gateway;
+  }
+
+  private async getGateway(id: string) {
+    const gateway = await this.prismaService.gateway.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (!gateway)
+      throw new HttpException(
+        `Could not find gateway with ID ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
+
+    if (gateway.status === 'DISCONNECTED')
+      throw new HttpException(
+        `Gateway is disconnected ${id}`,
+        HttpStatus.BAD_REQUEST,
+      );
 
     return gateway;
   }

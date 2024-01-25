@@ -77,6 +77,18 @@ export class GatewaysController {
     return this.gatewaysService.getDiskSpace(id);
   }
 
+  @Get(':id/restart/janus')
+  @ApiOperation({ summary: 'Restart the Janus service on the gateway' })
+  restartJanus(@Param('id') id: string) {
+    return this.gatewaysService.restartJanus(id);
+  }
+
+  @Get(':id/logs/janus')
+  @ApiOperation({ summary: 'Get log output from Janus service' })
+  getJanusLogs(@Param('id') id: string) {
+    return this.gatewaysService.getJanusOutput(id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all gateways' })
   @ApiResponse({
