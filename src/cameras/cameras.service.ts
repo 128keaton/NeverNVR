@@ -403,6 +403,28 @@ export class CamerasService {
     return camera;
   }
 
+  async isCameraConnected(id: string) {
+    const camera = await this.prismaService.camera.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        status: true,
+        gateway: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!camera) return false;
+
+    if (camera.gateway.status !== 'CONNECTED') return false;
+
+    return camera.status === 'CONNECTED';
+  }
+
   async checkForMissingCameras(
     gatewayID: string,
     camerasFromGateway: {

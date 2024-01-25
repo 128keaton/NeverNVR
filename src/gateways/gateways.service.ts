@@ -14,10 +14,12 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { CameraEvent } from '../cameras/types';
 import { AxiosRequestConfig } from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GatewaysService {
   private _gatewayEvents = new ReplaySubject<GatewayEvent>();
+  private readonly allowDisconnectedGateway: boolean = false;
 
   get gatewayEvents() {
     return this._gatewayEvents.asObservable();
@@ -26,8 +28,13 @@ export class GatewaysService {
   constructor(
     private prismaService: PrismaService,
     private httpService: HttpService,
+    private configService: ConfigService,
     @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,
-  ) {}
+  ) {
+    this.allowDisconnectedGateway = !!this.configService.get(
+      'ALLOW_DISCONNECTED_GATEWAY',
+    );
+  }
 
   create(data: GatewayCreate) {
     return this.prismaService.gateway.create({
@@ -75,7 +82,7 @@ export class GatewaysService {
 
     return lastValueFrom(
       this.httpService
-        .get<string>(
+        .get<{ output: string }>(
           `${gateway.connectionURL}/api/system/logs/janus`,
           this.getConfig(gateway.connectionToken),
         )
@@ -221,7 +228,7 @@ export class GatewaysService {
         HttpStatus.NOT_FOUND,
       );
 
-    if (gateway.status === 'DISCONNECTED')
+    if (gateway.status === 'DISCONNECTED' && !this.allowDisconnectedGateway)
       throw new HttpException(
         `Gateway is disconnected ${id}`,
         HttpStatus.BAD_REQUEST,

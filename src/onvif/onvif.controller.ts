@@ -23,6 +23,7 @@ import {
   PTZResponse,
 } from './responses';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+import { StopRequest } from './requests/stop.request';
 
 @Controller('onvif')
 @ApiTags('ONVIF')
@@ -81,6 +82,15 @@ export class OnvifController {
   })
   move(@Param('cameraID') cameraID: string, @Body() request: MoveRequest) {
     return this.onvifService.move(cameraID, request.directions, request.amount);
+  }
+
+  @Post(':cameraID/stop')
+  @ApiResponse({
+    status: 200,
+    type: PTZResponse,
+  })
+  stop(@Param('cameraID') cameraID: string, @Body() request: StopRequest) {
+    return this.onvifService.stop(cameraID, request.panTilt, request.zoom);
   }
 
   @Post(':cameraID/preset')

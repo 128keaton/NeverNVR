@@ -2,7 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { CamerasService } from '../cameras/cameras.service';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
 import { HttpService } from '@nestjs/axios';
-import { lastValueFrom, map } from 'rxjs';
+import { catchError, lastValueFrom, map, of } from 'rxjs';
 import { GatewaysService } from '../gateways/gateways.service';
 import { DeviceInformationResponse, PTZPresetsResponse } from './responses';
 import { PTZMoveDirection } from './enums';
@@ -81,6 +81,23 @@ export class OnvifService {
     );
   }
 
+  async stop(cameraID: string, panTilt: boolean = true, zoom: boolean = true) {
+    const gateway = await this.getGateway(cameraID);
+
+    return lastValueFrom(
+      this.httpService
+        .post<{ success: boolean }>(
+          `${gateway.connectionURL}/api/onvif/${cameraID}/stop`,
+          {
+            panTilt,
+            zoom,
+          },
+          this.getConfig(gateway.connectionToken),
+        )
+        .pipe(map((response) => response.data.success)),
+    );
+  }
+
   async goToPreset(cameraID: string, preset: string) {
     const gateway = await this.getGateway(cameraID);
     return lastValueFrom(
@@ -126,7 +143,12 @@ export class OnvifService {
           `${gateway.connectionURL}/api/onvif/${cameraID}/onvifStatus`,
           this.getConfig(gateway.connectionToken),
         )
-        .pipe(map((response) => response.data)),
+        .pipe(
+          map((response) => response.data),
+          catchError((err) => {
+            return of(err);
+          }),
+        ),
     );
   }
 
