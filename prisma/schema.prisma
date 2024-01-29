@@ -84,6 +84,8 @@ model Camera {
 
   clips Clip[]
 
+  ipAddress String?
+
   snapshots Snapshot[]
 
   // Camera timezone
