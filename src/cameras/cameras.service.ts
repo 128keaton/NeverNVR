@@ -261,6 +261,7 @@ export class CamerasService {
           gateway: {
             select: {
               name: true,
+              connectionURL: true,
             },
           },
         },
