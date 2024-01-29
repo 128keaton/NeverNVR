@@ -362,7 +362,6 @@ export class CamerasService {
           deleteSnapshotAfter: update.deleteSnapshotAfter,
           synchronized: !emit,
           lastConnection: update.lastConnection,
-          ipAddress: update.ipAddress || '',
         },
         include: {
           gateway: {
