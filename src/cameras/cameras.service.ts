@@ -14,7 +14,7 @@ import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { ConnectionStatus, Prisma } from '@prisma/client';
 import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
-import { AxiosRequestConfig, HttpStatusCode } from 'axios';
+import { AxiosRequestConfig, ResponseType } from 'axios';
 import { createPaginator } from 'prisma-pagination';
 
 @Injectable()
@@ -80,43 +80,20 @@ export class CamerasService {
   }
 
   async getPreview(id: string) {
-    const snapshot = await this.prismaService.snapshot
-      .findFirst({
-        where: {
-          cameraID: id,
-        },
-        orderBy: {
-          timestamp: 'desc',
-        },
-        select: {
-          timestamp: true,
-          cameraID: true,
-          fileName: true,
-          gateway: {
-            select: {
-              s3Bucket: true,
-            },
-          },
-        },
-      })
-      .catch((err) => {
-        this.logger.error(err);
-        return null;
-      });
+    const camera = await this.get(id);
 
-    if (!snapshot)
+    if (!camera)
       throw new HttpException(
-        'Could not find snapshot',
-        HttpStatusCode.NotFound,
+        `Could not find camera with ID ${id}`,
+        HttpStatus.NOT_FOUND,
       );
 
-    const fileKey = AppHelpers.getFileKey(
-      snapshot.fileName,
-      snapshot.cameraID,
-      '.jpeg',
-    );
+    const gateway = await this.getValidGateway(camera.gatewayID);
 
-    return this.s3Service.getFile(fileKey, snapshot.gateway.s3Bucket);
+    return this.httpService.axiosRef.get(
+      `${gateway.connectionURL}/api/cameras/${id}/preview.jpeg`,
+      this.getConfig(gateway.connectionToken, 'stream'),
+    );
   }
 
   async getSnapshots(
@@ -530,8 +507,12 @@ export class CamerasService {
     return camera;
   }
 
-  private getConfig(apiKey: string): AxiosRequestConfig {
+  private getConfig(
+    apiKey: string,
+    responseType?: ResponseType,
+  ): AxiosRequestConfig {
     return {
+      responseType,
       headers: {
         'api-key': apiKey,
       },
