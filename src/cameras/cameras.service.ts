@@ -13,8 +13,9 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { Prisma } from '@prisma/client';
 import { S3Service } from '../services/s3/s3.service';
-import { AxiosRequestConfig, ResponseType } from 'axios';
+import { AxiosRequestConfig, HttpStatusCode, ResponseType } from 'axios';
 import { createPaginator } from 'prisma-pagination';
+import { AppHelpers } from '../app.helpers';
 
 @Injectable()
 export class CamerasService {
@@ -78,7 +79,8 @@ export class CamerasService {
     );
   }
 
-  async getPreview(id: string) {
+
+  async getLivePreview(id: string) {
     const camera = await this.get(id);
 
     if (!camera)
@@ -93,6 +95,46 @@ export class CamerasService {
       `${gateway.connectionURL}/api/cameras/${id}/preview.jpeg`,
       this.getConfig(gateway.connectionToken, 'stream'),
     );
+  }
+
+  async getStalePreview(id: string) {
+    const snapshot = await this.prismaService.snapshot
+      .findFirst({
+        where: {
+          cameraID: id,
+        },
+        orderBy: {
+          timestamp: 'desc',
+        },
+        select: {
+          timestamp: true,
+          cameraID: true,
+          fileName: true,
+          gateway: {
+            select: {
+              s3Bucket: true,
+            },
+          },
+        },
+      })
+      .catch((err) => {
+        this.logger.error(err);
+        return null;
+      });
+
+    if (!snapshot)
+      throw new HttpException(
+        'Could not find snapshot',
+        HttpStatusCode.NotFound,
+      );
+
+    const fileKey = AppHelpers.getFileKey(
+      snapshot.fileName,
+      snapshot.cameraID,
+      '.jpeg',
+    );
+
+    return this.s3Service.getFile(fileKey, snapshot.gateway.s3Bucket);
   }
 
   async getSnapshots(

@@ -78,12 +78,26 @@ export class CamerasController {
   }
 
   @Get(':id/preview.jpeg')
-  @ApiOperation({ summary: 'Get a cameras preview image' })
+  @ApiOperation({
+    summary: 'Get a cameras preview image based off the last snapshot',
+  })
   @Header('Content-Type', 'image/jpeg')
   @CacheTTL(15000)
   @UseInterceptors(CacheInterceptor)
-  async getPreview(@Param('id') id: string, @Res() res: Response) {
-    const response = await this.camerasService.getPreview(id);
+  async getPreview(@Param('id') id: string) {
+    return this.camerasService.getStalePreview(id);
+  }
+
+  @Get(':id/live-preview.jpeg')
+  @ApiOperation({
+    summary:
+      'Get a cameras preview image, takes a while since its directly from the camera',
+  })
+  @Header('Content-Type', 'image/jpeg')
+  @CacheTTL(15000)
+  @UseInterceptors(CacheInterceptor)
+  async getLivePreview(@Param('id') id: string, @Res() res: Response) {
+    const response = await this.camerasService.getLivePreview(id);
     response.data.pipe(res);
   }
 
