@@ -12,7 +12,6 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { Prisma } from '@prisma/client';
-import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
 import { AxiosRequestConfig, ResponseType } from 'axios';
 import { createPaginator } from 'prisma-pagination';
