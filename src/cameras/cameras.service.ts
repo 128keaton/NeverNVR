@@ -11,7 +11,7 @@ import {
 } from './types';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, ReplaySubject } from 'rxjs';
-import { ConnectionStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { AppHelpers } from '../app.helpers';
 import { S3Service } from '../services/s3/s3.service';
 import { AxiosRequestConfig, ResponseType } from 'axios';
@@ -238,6 +238,7 @@ export class CamerasService {
           gateway: {
             select: {
               name: true,
+              connectionURL: true,
             },
           },
         },
@@ -339,6 +340,7 @@ export class CamerasService {
           deleteSnapshotAfter: update.deleteSnapshotAfter,
           synchronized: !emit,
           lastConnection: update.lastConnection,
+          ipAddress: update.ipAddress,
         },
         include: {
           gateway: {
@@ -400,66 +402,6 @@ export class CamerasService {
     if (camera.gateway.status !== 'CONNECTED') return false;
 
     return camera.status === 'CONNECTED';
-  }
-
-  async checkForMissingCameras(
-    gatewayID: string,
-    camerasFromGateway: {
-      id: string;
-      name: string;
-      stream: boolean;
-      record: boolean;
-      lastConnection?: Date;
-      synchronized: boolean;
-      status: ConnectionStatus;
-      deleteSnapshotAfter: number;
-      deleteClipAfter: number;
-    }[],
-  ) {
-    let camerasCreated = 0;
-    for (const gatewayCamera of camerasFromGateway) {
-      let camera = await this.get(gatewayCamera.id);
-
-      if (!camera) {
-        camera = await this.prismaService.camera.create({
-          data: {
-            id: gatewayCamera.id,
-            name: gatewayCamera.name,
-            stream: gatewayCamera.stream,
-            record: gatewayCamera.record,
-            lastConnection: gatewayCamera.lastConnection,
-            synchronized: gatewayCamera.synchronized,
-            status: gatewayCamera.status,
-            deleteClipAfter: gatewayCamera.deleteClipAfter,
-            deleteSnapshotAfter: gatewayCamera.deleteSnapshotAfter,
-            gateway: {
-              connect: {
-                id: gatewayID,
-              },
-            },
-          },
-          include: {
-            gateway: {
-              select: {
-                id: true,
-                name: true,
-                connectionURL: true,
-              },
-            },
-          },
-        });
-
-        this._cameraEvents.next({
-          eventType: 'created',
-          camera,
-        });
-
-        camerasCreated++;
-      }
-    }
-
-    if (camerasCreated > 0)
-      this.logger.verbose(`Created ${camerasCreated} cameras`);
   }
 
   private updateSynchronized(id: string, synchronized: boolean) {

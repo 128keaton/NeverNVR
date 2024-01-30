@@ -44,23 +44,12 @@ export class OnvifGateway {
           payload.cameraID
         }/zoom'`,
       );
-
-      setTimeout(async () => {
-        await this.mqttService.publish(
-          `never/ptz/${payload.cameraID}/stop`,
-          payload,
-        );
-      }, 500);
     } else {
       await this.onvifService.zoom(payload.cameraID, payload.amount);
 
       this.logger.verbose(
         `Sending zoom request to camera ID ${payload.cameraID}`,
       );
-
-      setTimeout(async () => {
-        await this.onvifService.stop(payload.cameraID, false, true);
-      }, 500);
     }
 
     return { success: true };
@@ -83,13 +72,6 @@ export class OnvifGateway {
           payload.cameraID
         }/move'`,
       );
-
-      setTimeout(async () => {
-        await this.mqttService.publish(
-          `never/ptz/${payload.cameraID}/stop`,
-          payload,
-        );
-      }, 500);
     } else {
       await this.onvifService.move(
         payload.cameraID,
@@ -101,10 +83,6 @@ export class OnvifGateway {
       this.logger.verbose(
         `Sending move request to camera ID ${payload.cameraID}`,
       );
-
-      setTimeout(async () => {
-        await this.onvifService.stop(payload.cameraID, true, false);
-      }, 500);
     }
 
     return { success: true };
