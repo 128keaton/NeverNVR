@@ -17,6 +17,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { CamerasService } from './cameras.service';
@@ -75,8 +76,9 @@ export class CamerasController {
   @Get(':id/preview.jpeg')
   @ApiOperation({ summary: 'Get a cameras preview image' })
   @Header('Content-Type', 'image/jpeg')
-  getPreview(@Param('id') id: string) {
-    return this.camerasService.getPreview(id);
+  async getPreview(@Param('id') id: string, @Res() res: Response) {
+    const response = await this.camerasService.getPreview(id);
+    response.data.pipe(res);
   }
 
   @Get(':id/snapshots')
