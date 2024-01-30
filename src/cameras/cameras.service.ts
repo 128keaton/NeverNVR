@@ -407,18 +407,21 @@ export class CamerasService {
 
     if (!camera) return camera;
 
-    if (emit)
+    if (emit) {
+      this.logger.verbose('Emitting camera update to MQTT/WebSocket');
       await this.camerasQueue.add('outgoing', {
         eventType: 'updated',
         camera,
         update,
       });
-
-    this._cameraEvents.next({
-      eventType: 'updated',
-      camera,
-      update,
-    });
+    } else {
+      this.logger.verbose('Emitting camera update to WebSocket only');
+      this._cameraEvents.next({
+        eventType: 'updated',
+        camera,
+        update,
+      });
+    }
 
     return camera;
   }
