@@ -19,6 +19,7 @@ import {
   Query,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CamerasService } from './cameras.service';
 import {
@@ -30,6 +31,7 @@ import {
 } from './types';
 import { Camera as CameraEntity } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('cameras')
 @ApiTags('Cameras')
@@ -69,6 +71,8 @@ export class CamerasController {
     type: Camera,
   })
   @ApiOperation({ summary: 'Get a cameras details' })
+  @CacheTTL(1000)
+  @UseInterceptors(CacheInterceptor)
   getDetails(@Param('id') id: string): Promise<Camera> {
     return this.camerasService.getDetails(id);
   }
@@ -76,6 +80,8 @@ export class CamerasController {
   @Get(':id/preview.jpeg')
   @ApiOperation({ summary: 'Get a cameras preview image' })
   @Header('Content-Type', 'image/jpeg')
+  @CacheTTL(15000)
+  @UseInterceptors(CacheInterceptor)
   async getPreview(@Param('id') id: string, @Res() res: Response) {
     const response = await this.camerasService.getPreview(id);
     response.data.pipe(res);
