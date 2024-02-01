@@ -69,7 +69,7 @@ export class CamerasGateway extends CommonGateway {
     return this.camerasService.delete(payload.id, false);
   }
 
-//  @Subscribe('never_gateway/camera/+/updated')
+  @Subscribe('never_gateway/camera/+/updated')
   handleUpdated(
     @Payload()
     payload: {
