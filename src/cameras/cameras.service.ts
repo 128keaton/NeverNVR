@@ -398,7 +398,12 @@ export class CamerasService {
 
     if (!camera) return camera;
 
-    if (emit) {
+    const updateKeys = Object.keys(update);
+
+    if (
+      (emit && updateKeys.length > 0 && updateKeys.includes('synchronized')) ||
+      updateKeys.includes('status')
+    ) {
       this.logger.verbose('Emitting camera update to MQTT/WebSocket');
       await this.camerasQueue.add('outgoing', {
         eventType: 'updated',
@@ -450,12 +455,6 @@ export class CamerasService {
       throw new HttpException(
         `Could not find gateway with ID ${gatewayID}`,
         HttpStatus.NOT_FOUND,
-      );
-
-    if (gateway.status === 'DISCONNECTED')
-      throw new HttpException(
-        `Gateway is disconnected ${gatewayID}`,
-        HttpStatus.BAD_REQUEST,
       );
 
     return gateway;
