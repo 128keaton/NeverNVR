@@ -16,6 +16,7 @@ import { S3Service } from '../services/s3/s3.service';
 import { AxiosRequestConfig, HttpStatusCode, ResponseType } from 'axios';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
+import { GatewayEventsService } from '../gateway-events/gateway-events.service';
 
 @Injectable()
 export class CamerasService {
@@ -27,6 +28,7 @@ export class CamerasService {
   }
 
   constructor(
+    private gatewayEventsService: GatewayEventsService,
     private s3Service: S3Service,
     private httpService: HttpService,
     private prismaService: PrismaService,
@@ -409,6 +411,9 @@ export class CamerasService {
         eventType: 'updated',
         camera,
         update,
+      });
+      await this.gatewayEventsService.handleCamera('updated', camera.id, {
+        camera,
       });
     } else {
       this.logger.verbose('Emitting camera update to WebSocket only');
