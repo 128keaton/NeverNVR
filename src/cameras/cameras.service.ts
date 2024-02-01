@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import { Job, Queue } from 'bull';
+import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import {
   CameraEvent,
@@ -31,15 +31,7 @@ export class CamerasService {
     private httpService: HttpService,
     private prismaService: PrismaService,
     @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,
-  ) {
-    this.camerasQueue.on(
-      'completed',
-      (job: Job<CameraEvent>, response: boolean) => {
-        if (job.data.eventType !== 'deleted')
-          return this.updateSynchronized(job.data.camera.id, response);
-      },
-    );
-  }
+  ) {}
 
   get(id: string) {
     return this.prismaService.camera.findFirst({
@@ -78,7 +70,6 @@ export class CamerasService {
         .pipe(map((response) => response.data)),
     );
   }
-
 
   async getLivePreview(id: string) {
     const camera = await this.get(id);
@@ -407,7 +398,12 @@ export class CamerasService {
 
     if (!camera) return camera;
 
-    if (emit) {
+    const updateKeys = Object.keys(update);
+
+    if (
+      (emit && updateKeys.length > 0 && updateKeys.includes('synchronized')) ||
+      updateKeys.includes('status')
+    ) {
       this.logger.verbose('Emitting camera update to MQTT/WebSocket');
       await this.camerasQueue.add('outgoing', {
         eventType: 'updated',
@@ -448,17 +444,6 @@ export class CamerasService {
     return camera.status === 'CONNECTED';
   }
 
-  private updateSynchronized(id: string, synchronized: boolean) {
-    return this.prismaService.camera.update({
-      where: {
-        id,
-      },
-      data: {
-        synchronized,
-      },
-    });
-  }
-
   private async getValidGateway(gatewayID: string) {
     const gateway = await this.prismaService.gateway.findFirst({
       where: {
@@ -470,12 +455,6 @@ export class CamerasService {
       throw new HttpException(
         `Could not find gateway with ID ${gatewayID}`,
         HttpStatus.NOT_FOUND,
-      );
-
-    if (gateway.status === 'DISCONNECTED')
-      throw new HttpException(
-        `Gateway is disconnected ${gatewayID}`,
-        HttpStatus.BAD_REQUEST,
       );
 
     return gateway;
