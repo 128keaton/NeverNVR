@@ -212,6 +212,7 @@ export class CamerasController {
     @Param('id') id: string,
     @Body() data: CameraUpdate,
   ): Promise<CameraEntity> {
+    console.log('CONTROLLER IS SENDING UPDATE');
     return this.camerasService.update(id, data);
   }
 }
