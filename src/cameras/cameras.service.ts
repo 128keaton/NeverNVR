@@ -400,29 +400,15 @@ export class CamerasService {
 
     if (!camera) return camera;
 
-    const updateKeys = Object.keys(update);
 
-    if (
-      (emit && updateKeys.length > 0 && updateKeys.includes('synchronized')) ||
-      updateKeys.includes('status')
-    ) {
-      this.logger.verbose('Emitting camera update to MQTT/WebSocket');
-      await this.camerasQueue.add('outgoing', {
-        eventType: 'updated',
-        camera,
-        update,
-      });
-      await this.gatewayEventsService.handleCamera('updated', camera.id, {
-        camera,
-      });
-    } else {
+
+
       this.logger.verbose('Emitting camera update to WebSocket only');
       this._cameraEvents.next({
         eventType: 'updated',
         camera,
         update,
       });
-    }
 
     return camera;
   }
