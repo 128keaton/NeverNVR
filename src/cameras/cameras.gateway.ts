@@ -34,8 +34,6 @@ export class CamerasGateway extends CommonGateway {
     // Get all UI clients (i.e. non gateway clients)
     const webClients = this.getWebClients();
 
-    this.logger.verbose('Handling camera event');
-
     // Send the UI clients the same update
     webClients.forEach((client) => {
       client.emit(event.eventType, {
