@@ -412,9 +412,9 @@ export class CamerasService {
         camera,
         update,
       });
-     /* await this.gatewayEventsService.handleCamera('updated', camera.id, {
+      await this.gatewayEventsService.handleCamera('updated', camera.id, {
         camera,
-      });*/
+      });
     } else {
       this.logger.verbose('Emitting camera update to WebSocket only');
       this._cameraEvents.next({
