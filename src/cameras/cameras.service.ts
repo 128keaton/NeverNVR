@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
-import { Queue } from 'bull';
+import { Job, Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import {
   CameraEvent,
@@ -16,7 +16,6 @@ import { S3Service } from '../services/s3/s3.service';
 import { AxiosRequestConfig, HttpStatusCode, ResponseType } from 'axios';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
-import { GatewayEventsService } from '../gateway-events/gateway-events.service';
 
 @Injectable()
 export class CamerasService {
@@ -28,12 +27,19 @@ export class CamerasService {
   }
 
   constructor(
-    private gatewayEventsService: GatewayEventsService,
     private s3Service: S3Service,
     private httpService: HttpService,
     private prismaService: PrismaService,
     @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,
-  ) {}
+  ) {
+    this.camerasQueue.on(
+      'completed',
+      (job: Job<CameraEvent>, response: boolean) => {
+        if (job.data.eventType !== 'deleted')
+          return this.updateSynchronized(job.data.camera.id, response);
+      },
+    );
+  }
 
   get(id: string) {
     return this.prismaService.camera.findFirst({
@@ -400,29 +406,18 @@ export class CamerasService {
 
     if (!camera) return camera;
 
-    const updateKeys = Object.keys(update);
-
-    if (
-      (emit && updateKeys.length > 0 && updateKeys.includes('synchronized')) ||
-      updateKeys.includes('status')
-    ) {
-      this.logger.verbose('Emitting camera update to MQTT/WebSocket');
+    if (emit)
       await this.camerasQueue.add('outgoing', {
         eventType: 'updated',
         camera,
         update,
       });
-      await this.gatewayEventsService.handleCamera('updated', camera.id, {
-        camera,
-      });
-    } else {
-      this.logger.verbose('Emitting camera update to WebSocket only');
-      this._cameraEvents.next({
-        eventType: 'updated',
-        camera,
-        update,
-      });
-    }
+
+    this._cameraEvents.next({
+      eventType: 'updated',
+      camera,
+      update,
+    });
 
     return camera;
   }
@@ -447,6 +442,17 @@ export class CamerasService {
     if (camera.gateway.status !== 'CONNECTED') return false;
 
     return camera.status === 'CONNECTED';
+  }
+
+  private updateSynchronized(id: string, synchronized: boolean) {
+    return this.prismaService.camera.update({
+      where: {
+        id,
+      },
+      data: {
+        synchronized,
+      },
+    });
   }
 
   private async getValidGateway(gatewayID: string) {
