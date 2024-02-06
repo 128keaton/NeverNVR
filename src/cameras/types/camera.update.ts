@@ -174,4 +174,22 @@ export class CameraUpdate {
   })
   @IsOptional()
   synchronized?: boolean;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  hardwareEncoderPriority?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  manufacturer?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  type?: string;
 }

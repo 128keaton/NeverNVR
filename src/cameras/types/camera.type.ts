@@ -98,4 +98,13 @@ export class Camera {
 
   @ApiProperty()
   synchronized: boolean;
+
+  @ApiProperty()
+  hardwareEncoderPriority: string;
+
+  @ApiProperty()
+  manufacturer?: string;
+
+  @ApiProperty()
+  type: string;
 }
