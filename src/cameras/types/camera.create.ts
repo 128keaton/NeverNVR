@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { CameraType } from '@prisma/client';
+import { CameraType, HardwareEncoderPriority } from '@prisma/client';
 
 export class CameraCreate {
   @ApiProperty({
@@ -122,12 +122,6 @@ export class CameraCreate {
     required: false,
   })
   @IsOptional()
-  hardwareEncoderPriority?: string;
-
-  @ApiProperty({
-    required: false,
-  })
-  @IsOptional()
   manufacturer?: string;
 
   @ApiProperty({
@@ -135,4 +129,17 @@ export class CameraCreate {
   })
   @IsOptional()
   type?: CameraType;
+
+  @ApiProperty({
+    enum: [
+      HardwareEncoderPriority.none,
+      HardwareEncoderPriority.nvidia,
+      HardwareEncoderPriority.vaapi,
+      HardwareEncoderPriority.u30,
+    ],
+    default: HardwareEncoderPriority.none,
+    example: HardwareEncoderPriority.none,
+  })
+  @IsOptional()
+  hardwareEncoderPriority?: HardwareEncoderPriority;
 }
