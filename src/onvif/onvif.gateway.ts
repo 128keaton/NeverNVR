@@ -11,8 +11,6 @@ import {
 } from './payloads';
 import { MqttService } from '@vipstorage/nest-mqtt';
 import { Logger } from '@nestjs/common';
-import { CamerasService } from '../cameras/cameras.service';
-import { OnvifService } from './onvif.service';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: false },
@@ -21,69 +19,38 @@ import { OnvifService } from './onvif.service';
 export class OnvifGateway {
   private logger = new Logger(OnvifGateway.name);
 
-  constructor(
-    private onvifService: OnvifService,
-    private mqttService: MqttService,
-    private camerasService: CamerasService,
-  ) {}
+  constructor(private mqttService: MqttService) {}
 
   @SubscribeMessage('zoom')
   async zoom(@MessageBody() payload: ZoomPayload) {
-    const isCameraConnected = await this.camerasService.isCameraConnected(
-      payload.cameraID,
+    await this.mqttService.publish(
+      `never/ptz/${payload.cameraID}/zoom`,
+      payload,
+      { qos: 2 },
     );
 
-    if (isCameraConnected) {
-      await this.mqttService.publish(
-        `never/ptz/${payload.cameraID}/zoom`,
-        payload,
-      );
-
-      this.logger.verbose(
-        `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
-          payload.cameraID
-        }/zoom'`,
-      );
-    } else {
-      await this.onvifService.zoom(payload.cameraID, payload.amount);
-
-      this.logger.verbose(
-        `Sending zoom request to camera ID ${payload.cameraID}`,
-      );
-    }
+    this.logger.verbose(
+      `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
+        payload.cameraID
+      }/zoom'`,
+    );
 
     return { success: true };
   }
 
   @SubscribeMessage('move')
   async move(@MessageBody() payload: MovePayload) {
-    const isCameraConnected = await this.camerasService.isCameraConnected(
-      payload.cameraID,
+    await this.mqttService.publish(
+      `never/ptz/${payload.cameraID}/move`,
+      payload,
+      { qos: 2 },
     );
 
-    if (isCameraConnected) {
-      await this.mqttService.publish(
-        `never/ptz/${payload.cameraID}/move`,
-        payload,
-      );
-
-      this.logger.verbose(
-        `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
-          payload.cameraID
-        }/move'`,
-      );
-    } else {
-      await this.onvifService.move(
-        payload.cameraID,
-        payload.directions,
-        payload.amount,
-        payload.speed,
-      );
-
-      this.logger.verbose(
-        `Sending move request to camera ID ${payload.cameraID}`,
-      );
-    }
+    this.logger.verbose(
+      `Publishing ${JSON.stringify(payload)} to 'never/ptz/${
+        payload.cameraID
+      }/move'`,
+    );
 
     return { success: true };
   }
@@ -93,6 +60,7 @@ export class OnvifGateway {
     await this.mqttService.publish(
       `never/ptz/${payload.cameraID}/stop`,
       payload,
+      { qos: 2 },
     );
 
     this.logger.verbose(
@@ -109,6 +77,7 @@ export class OnvifGateway {
     await this.mqttService.publish(
       `never/ptz/${payload.cameraID}/preset`,
       payload,
+      { qos: 2 },
     );
 
     this.logger.verbose(
