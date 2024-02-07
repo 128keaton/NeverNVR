@@ -305,6 +305,7 @@ export class CamerasService {
         record: create.record,
         type: create.type,
         manufacturer: create.manufacturer,
+        hardwareEncoderPriority: create.hardwareEncoderPriority,
         gateway: {
           connect: {
             id: gatewayID,
@@ -385,6 +386,7 @@ export class CamerasService {
           ipAddress: update.ipAddress,
           type: update.type,
           manufacturer: update.manufacturer,
+          hardwareEncoderPriority: update.hardwareEncoderPriority,
         },
         include: {
           gateway: {
