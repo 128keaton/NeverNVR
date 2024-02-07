@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ConnectionStatus } from '@prisma/client';
+import { CameraType, ConnectionStatus } from '@prisma/client';
 
 export class Camera {
   @ApiProperty({
@@ -98,4 +98,13 @@ export class Camera {
 
   @ApiProperty()
   synchronized: boolean;
+
+  @ApiProperty()
+  hardwareEncoderPriority: string;
+
+  @ApiProperty()
+  manufacturer?: string;
+
+  @ApiProperty()
+  type: CameraType;
 }

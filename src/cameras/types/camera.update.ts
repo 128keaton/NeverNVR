@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { ConnectionStatus } from '@prisma/client';
+import { CameraType, ConnectionStatus } from '@prisma/client';
 
 export class CameraUpdate {
   @ApiProperty({
@@ -174,4 +174,22 @@ export class CameraUpdate {
   })
   @IsOptional()
   synchronized?: boolean;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  hardwareEncoderPriority?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  manufacturer?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  type?: CameraType;
 }

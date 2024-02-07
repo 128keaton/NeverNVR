@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { CameraType } from '@prisma/client';
 
 export class CameraCreate {
   @ApiProperty({
@@ -116,4 +117,22 @@ export class CameraCreate {
   @IsBoolean()
   @IsOptional()
   record?: boolean;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  hardwareEncoderPriority?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  manufacturer?: string;
+
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  type?: CameraType;
 }

@@ -303,6 +303,8 @@ export class CamerasService {
         name: create.name,
         stream: create.stream,
         record: create.record,
+        type: create.type,
+        manufacturer: create.manufacturer,
         gateway: {
           connect: {
             id: gatewayID,
@@ -381,6 +383,8 @@ export class CamerasService {
           synchronized: !emit,
           lastConnection: update.lastConnection,
           ipAddress: update.ipAddress,
+          type: update.type,
+          manufacturer: update.manufacturer,
         },
         include: {
           gateway: {
