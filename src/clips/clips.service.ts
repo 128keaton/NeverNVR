@@ -477,35 +477,38 @@ export class ClipsService {
     return paginationResponse;
   }
 
-  async requestClips(
-    gatewayID: string,
-    request: { cameraID?: string; dateStart?: Date; dateEnd?: Date },
-  ) {
-    const gateway = await this.prismaService.gateway.findFirst({
+  async getManyClips(clipIDs: string | string[]) {
+    if (!Array.isArray(clipIDs)) clipIDs = clipIDs.split(',');
+
+    const clips = await this.prismaService.clip.findMany({
       where: {
-        id: gatewayID,
+        id: {
+          in: clipIDs,
+        },
       },
-      select: {
-        connectionToken: true,
-        connectionURL: true,
+      include: {
+        gateway: {
+          select: {
+            name: true,
+            id: true,
+            s3Bucket: true,
+          },
+        },
+        camera: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
       },
     });
 
-    if (!gateway)
-      throw new HttpException(
-        `Cannot find gateway for ID ${gatewayID}`,
-        HttpStatusCode.BadRequest,
-      );
-
-    return lastValueFrom(
-      this.httpService
-        .post(
-          `${gateway.connectionURL}/api/clips/request`,
-          request,
-          this.getGatewayConfig(gateway.connectionToken),
-        )
-        .pipe(map((response) => response.data)),
-    );
+    return {
+      meta: {
+        total: clips.length,
+      },
+      data: clips,
+    };
   }
 
   async uploadClips(gatewayID: string, clips: string[]) {
