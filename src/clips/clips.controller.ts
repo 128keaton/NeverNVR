@@ -22,7 +22,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import {
-  ClipsRequest,
   ClipsResponse,
   ClipsUploadRequest,
   ClipUrlResponse,
@@ -141,6 +140,25 @@ export class ClipsController {
       showAvailableOnly,
       tags,
     );
+  }
+
+  @Get('many')
+  @ApiOperation({ summary: 'Get many clips' })
+  @ApiQuery({
+    name: 'clips',
+    required: true,
+    isArray: true,
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The clips for the given camera ID',
+    type: ClipsResponse,
+  })
+  getManyClips(
+    @Query('clips', new DefaultValuePipe([])) clips: string | string[],
+  ) {
+    return this.clipsService.getManyClips(clips);
   }
 
   @Get('list/:cameraID')
@@ -322,16 +340,7 @@ export class ClipsController {
   @ApiBody({
     type: ClipsUploadRequest,
   })
-  uploadClips(@Body() request: ClipsUploadRequest) {
+  uploadClip(@Body() request: ClipsUploadRequest) {
     return this.clipsService.uploadClips(request.gatewayID, request.clips);
-  }
-
-  @Post('request')
-  @ApiOperation({ summary: 'Find clips to be requested then uploaded' })
-  @ApiBody({
-    type: ClipsRequest,
-  })
-  findClipsRequestUpload(@Body() request: ClipsRequest) {
-    return this.clipsService.requestClips(request.gatewayID, request);
   }
 }
