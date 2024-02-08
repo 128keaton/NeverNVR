@@ -8,7 +8,14 @@ import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
-import { lastValueFrom, map, of, ReplaySubject, switchMap } from 'rxjs';
+import {
+  catchError,
+  lastValueFrom,
+  map,
+  of,
+  ReplaySubject,
+  switchMap,
+} from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
 import { Interval } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
@@ -537,6 +544,12 @@ export class ClipsService {
         )
         .pipe(
           map((response) => response.data.success),
+          catchError((err) => {
+            this.logger.error('Could not request clips to be uploaded:');
+            this.logger.error(err);
+
+            return of(false);
+          }),
           switchMap((success) => {
             if (success) return this.updateManyRequested(clips);
             else return of(0);
