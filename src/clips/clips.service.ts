@@ -94,8 +94,8 @@ export class ClipsService {
     }
   }
 
-  getClip(id: string) {
-    return this.prismaService.clip.findFirst({
+  async getClip(id: string) {
+    const clip = await this.prismaService.clip.findFirst({
       where: {
         id,
       },
@@ -109,6 +109,72 @@ export class ClipsService {
         },
       },
     });
+
+    const snapshotMinDate = new Date(clip.start);
+    snapshotMinDate.setMinutes(snapshotMinDate.getMinutes() - 1);
+
+    const snapshotMaxDate = new Date(clip.end);
+    snapshotMaxDate.setMinutes(snapshotMaxDate.getMinutes() + 1);
+
+    const potentialSnapshots = await this.prismaService.snapshot.findMany({
+      where: {
+        AND: [
+          {
+            timestamp: {
+              gte: snapshotMinDate,
+            },
+          },
+          {
+            timestamp: {
+              lte: snapshotMaxDate,
+            },
+          },
+        ],
+      },
+      include: {
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    const snapshot = potentialSnapshots.find((snapshot) => {
+      const snapshotDate = new Date(snapshot.timestamp);
+      const clipDate = new Date(clip.start);
+
+      return (
+        snapshotDate.getFullYear() === clipDate.getFullYear() &&
+        snapshotDate.getMonth() === clipDate.getMonth() &&
+        snapshotDate.getDate() === clipDate.getDate() &&
+        snapshotDate.getHours() == clipDate.getHours() &&
+        snapshotDate.getMinutes() === clipDate.getMinutes()
+      );
+    });
+
+    const getPreviewURL = (snapshot: {
+      cameraID: string;
+      fileName: string;
+      gateway: { s3Bucket: string };
+    }) => {
+      const fileKey = AppHelpers.getFileKey(
+        snapshot.fileName,
+        snapshot.cameraID,
+        '.jpeg',
+      );
+
+      return `https://${snapshot.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
+    };
+
+    if (!!snapshot) {
+      return {
+        ...clip,
+        previewURL: getPreviewURL(snapshot),
+      };
+    }
+
+    return clip;
   }
 
   async delete(id: string, emitLocal = true) {
