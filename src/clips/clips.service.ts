@@ -508,6 +508,9 @@ export class ClipsService {
           },
         },
       },
+      orderBy: {
+        end: 'desc',
+      },
     });
 
     return {
