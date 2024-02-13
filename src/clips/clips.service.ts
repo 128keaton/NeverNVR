@@ -612,7 +612,18 @@ export class ClipsService {
         return `https://${snapshot.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
       };
 
-      const snapshot = previewSnapshotsResponse.data[index];
+      const snapshot = previewSnapshotsResponse.data.find((snapshot) => {
+        const snapshotDate = new Date(snapshot.timestamp);
+        const clipDate = new Date(clip.start);
+
+        return (
+          snapshotDate.getFullYear() === clipDate.getFullYear() &&
+          snapshotDate.getMonth() === clipDate.getMonth() &&
+          snapshotDate.getDate() === clipDate.getDate() &&
+          snapshotDate.getHours() == clipDate.getHours() &&
+          snapshotDate.getMinutes() === clipDate.getMinutes()
+        );
+      });
 
       if (!!snapshot) {
         paginationResponse.data[index] = {
