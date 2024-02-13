@@ -444,17 +444,23 @@ export class ClipsService {
           },
         };
 
+        const previewDateStart = new Date(dateStart);
+        previewDateStart.setMinutes(previewDateStart.getMinutes() - 1);
+
+        const previewDateEnd = new Date(dateEnd);
+        previewDateEnd.setMinutes(previewDateEnd.getMinutes() + 1);
+
         previewWhere = {
           ...previewWhere,
           AND: [
             {
               timestamp: {
-                gte: new Date(dateStart),
+                gte: previewDateStart,
               },
             },
             {
               timestamp: {
-                lte: new Date(dateEnd),
+                lte: previewDateEnd,
               },
             },
           ],
