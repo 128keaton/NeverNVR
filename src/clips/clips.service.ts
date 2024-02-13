@@ -358,7 +358,9 @@ export class ClipsService {
     const orderBy: Prisma.ClipOrderByWithRelationInput = {};
     const orderByPreview: Prisma.SnapshotOrderByWithRelationInput = {};
     let where: Prisma.ClipWhereInput = {};
-    let previewWhere: Prisma.SnapshotWhereInput = {};
+    let previewWhere: Prisma.SnapshotWhereInput = {
+      availableCloud: true,
+    };
 
     if (!!search) {
       where = {
@@ -519,11 +521,6 @@ export class ClipsService {
     if (showAvailableOnly === 'true') {
       where = {
         ...where,
-        availableCloud: true,
-      };
-
-      previewWhere = {
-        ...previewWhere,
         availableCloud: true,
       };
     }
