@@ -174,7 +174,7 @@ export class CamerasController {
   getMany(
     @Query('pageSize') pageSize = 40,
     @Query('pageNumber') pageNumber = 0,
-    @Query('sortBy', new DefaultValuePipe('lastConnection')) sortBy: string,
+    @Query('sortBy', new DefaultValuePipe('name')) sortBy: string,
     @Query('sortDirection', new DefaultValuePipe('desc'))
     sortDirection: 'asc' | 'desc' | '',
     @Query('search') search?: string,
