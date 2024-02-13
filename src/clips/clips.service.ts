@@ -681,7 +681,7 @@ export class ClipsService {
         return `https://${snapshot.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
       };
 
-      const snapshot = previewSnapshotsResponse.data.find((snapshot) => {
+      let snapshot = previewSnapshotsResponse.data.find((snapshot) => {
         const snapshotDate = new Date(snapshot.timestamp);
         const clipDate = new Date(clip.start);
 
@@ -693,6 +693,8 @@ export class ClipsService {
           snapshotDate.getMinutes() === clipDate.getMinutes()
         );
       });
+
+      if (!snapshot) snapshot = previewSnapshotsResponse.data[index];
 
       if (!!snapshot) {
         paginationResponse.data[index] = {
