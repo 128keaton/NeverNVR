@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { S3Service } from '../services/s3/s3.service';
 import { Clip, ClipCreate, ClipEvent, ClipUpdate } from './type';
-import { Prisma } from '@prisma/client';
+import { Prisma, Snapshot } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
@@ -357,9 +357,43 @@ export class ClipsService {
 
     const orderBy: Prisma.ClipOrderByWithRelationInput = {};
     let where: Prisma.ClipWhereInput = {};
+    let previewWhere: Prisma.SnapshotWhereInput = {};
 
     if (!!search) {
       where = {
+        OR: [
+          {
+            camera: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            primaryTag: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            gateway: {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            fileName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      };
+
+      previewWhere = {
         OR: [
           {
             camera: {
@@ -408,12 +442,40 @@ export class ClipsService {
             lte: new Date(dateEnd),
           },
         };
+
+        previewWhere = {
+          ...previewWhere,
+          AND: [
+            {
+              timestamp: {
+                gte: new Date(dateStart),
+              },
+            },
+            {
+              timestamp: {
+                lte: new Date(dateEnd),
+              },
+            },
+          ],
+        };
+      } else {
+        previewWhere = {
+          ...previewWhere,
+          timestamp: {
+            gte: new Date(dateStart),
+          },
+        };
       }
     }
 
     if (!!cameraID) {
       where = {
         ...where,
+        cameraID,
+      };
+
+      previewWhere = {
+        ...previewWhere,
         cameraID,
       };
     }
@@ -427,9 +489,21 @@ export class ClipsService {
             in: gatewayIDs,
           },
         };
+
+        previewWhere = {
+          ...previewWhere,
+          gatewayID: {
+            in: gatewayIDs,
+          },
+        };
       } else {
         where = {
           ...where,
+          gatewayID,
+        };
+
+        previewWhere = {
+          ...previewWhere,
           gatewayID,
         };
       }
@@ -440,12 +514,47 @@ export class ClipsService {
         ...where,
         availableCloud: true,
       };
+
+      previewWhere = {
+        ...previewWhere,
+        availableCloud: true,
+      };
     }
 
     where = AppHelpers.handleTagsFilter(tags, where);
 
     if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
     else orderBy['end'] = sortDirection || 'desc';
+
+    const previewSnapshotsResponse = await paginate<
+      any,
+      Prisma.SnapshotFindManyArgs
+    >(
+      this.prismaService.snapshot,
+      {
+        where: previewWhere,
+        orderBy,
+        include: {
+          gateway: {
+            select: {
+              name: true,
+              id: true,
+              s3Bucket: true,
+            },
+          },
+          camera: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
+        },
+      },
+      {
+        page: pageNumber,
+        perPage: pageSize,
+      },
+    );
 
     const paginationResponse = await paginate<Clip, Prisma.ClipFindManyArgs>(
       this.prismaService.clip,
@@ -474,11 +583,35 @@ export class ClipsService {
       },
     );
 
-    paginationResponse.data = paginationResponse.data.map((clip) => {
-      return {
-        ...clip,
-        url: this.getClipURL(clip),
+    paginationResponse.data.forEach((clip, index) => {
+      const getPreviewURL = (snapshot: {
+        cameraID: string;
+        fileName: string;
+        gateway: { s3Bucket: string };
+      }) => {
+        const fileKey = AppHelpers.getFileKey(
+          snapshot.fileName,
+          snapshot.cameraID,
+          '.jpeg',
+        );
+
+        return `https://${snapshot.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
       };
+
+      const snapshot = previewSnapshotsResponse.data[index];
+
+      if (!!snapshot) {
+        paginationResponse.data[index] = {
+          ...clip,
+          previewURL: getPreviewURL(snapshot),
+          url: this.getClipURL(clip),
+        };
+      } else {
+        paginationResponse.data[index] = {
+          ...clip,
+          url: this.getClipURL(clip),
+        };
+      }
     });
 
     return paginationResponse;
