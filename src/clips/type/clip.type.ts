@@ -14,4 +14,7 @@ export class Clip extends ClipCreate {
 
   @ApiProperty()
   url?: string;
+
+  @ApiProperty()
+  previewURL?: string;
 }
