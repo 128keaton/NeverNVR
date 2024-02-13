@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { S3Service } from '../services/s3/s3.service';
 import { Clip, ClipCreate, ClipEvent, ClipUpdate } from './type';
-import { Prisma, Snapshot } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
