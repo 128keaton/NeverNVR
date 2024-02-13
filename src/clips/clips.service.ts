@@ -118,6 +118,7 @@ export class ClipsService {
 
     const potentialSnapshots = await this.prismaService.snapshot.findMany({
       where: {
+        cameraID: clip.camera.id,
         AND: [
           {
             timestamp: {
