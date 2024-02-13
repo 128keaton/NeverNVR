@@ -356,6 +356,7 @@ export class ClipsService {
     const paginate = createPaginator({ perPage: pageSize || 40 });
 
     const orderBy: Prisma.ClipOrderByWithRelationInput = {};
+    const orderByPreview: Prisma.SnapshotOrderByWithRelationInput = {};
     let where: Prisma.ClipWhereInput = {};
     let previewWhere: Prisma.SnapshotWhereInput = {};
 
@@ -523,8 +524,15 @@ export class ClipsService {
 
     where = AppHelpers.handleTagsFilter(tags, where);
 
-    if (!!sortBy) orderBy[sortBy] = sortDirection || 'desc';
-    else orderBy['end'] = sortDirection || 'desc';
+    if (!!sortBy) {
+      orderBy[sortBy] = sortDirection || 'desc';
+
+      if (sortBy === 'start' || sortBy === 'end')
+        orderByPreview['timestamp'] = sortDirection || 'desc';
+    } else {
+      orderBy['end'] = sortDirection || 'desc';
+      orderByPreview['timestamp'] = sortDirection || 'desc';
+    }
 
     const previewSnapshotsResponse = await paginate<
       any,
@@ -533,7 +541,7 @@ export class ClipsService {
       this.prismaService.snapshot,
       {
         where: previewWhere,
-        orderBy,
+        orderBy: orderByPreview,
         include: {
           gateway: {
             select: {
