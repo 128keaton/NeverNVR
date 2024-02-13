@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { S3Service } from '../services/s3/s3.service';
 import { Clip, ClipCreate, ClipEvent, ClipUpdate } from './type';
-import { Prisma, Snapshot } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
@@ -358,7 +358,9 @@ export class ClipsService {
     const orderBy: Prisma.ClipOrderByWithRelationInput = {};
     const orderByPreview: Prisma.SnapshotOrderByWithRelationInput = {};
     let where: Prisma.ClipWhereInput = {};
-    let previewWhere: Prisma.SnapshotWhereInput = {};
+    let previewWhere: Prisma.SnapshotWhereInput = {
+      availableCloud: true,
+    };
 
     if (!!search) {
       where = {
@@ -519,11 +521,6 @@ export class ClipsService {
     if (showAvailableOnly === 'true') {
       where = {
         ...where,
-        availableCloud: true,
-      };
-
-      previewWhere = {
-        ...previewWhere,
         availableCloud: true,
       };
     }
