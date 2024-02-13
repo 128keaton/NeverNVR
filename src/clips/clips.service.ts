@@ -132,6 +132,9 @@ export class ClipsService {
           },
         ],
       },
+      orderBy: {
+        timestamp: 'desc',
+      },
       include: {
         gateway: {
           select: {
@@ -141,7 +144,7 @@ export class ClipsService {
       },
     });
 
-    const snapshot = potentialSnapshots.find((snapshot) => {
+    let snapshot = potentialSnapshots.find((snapshot) => {
       const snapshotDate = new Date(snapshot.timestamp);
       const clipDate = new Date(clip.start);
 
@@ -153,6 +156,8 @@ export class ClipsService {
         snapshotDate.getMinutes() === clipDate.getMinutes()
       );
     });
+
+    if (!snapshot) snapshot = potentialSnapshots[0];
 
     const getPreviewURL = (snapshot: {
       cameraID: string;
