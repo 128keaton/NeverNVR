@@ -8,4 +8,5 @@ export * from './clip.type';
 export * from './clip.update';
 export * from './clips-upload.request';
 export * from './clips.response';
+export * from './combine-clip.create';
 export * from './concat-clip.create';

@@ -2,7 +2,7 @@ import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { S3Service } from '../services/s3/s3.service';
+import { AmazonService } from '../services/s3/amazon.service';
 import { Clip, ClipCreate, ClipEvent, ClipUpdate } from './type';
 import { Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
@@ -32,7 +32,7 @@ export class ClipsService {
 
   constructor(
     private httpService: HttpService,
-    private s3Service: S3Service,
+    private amazonService: AmazonService,
     private prismaService: PrismaService,
     private videoAnalyticsService: VideoAnalyticsService,
     @InjectQueue('clips') private clipQueue: Queue,
@@ -213,7 +213,7 @@ export class ClipsService {
     );
 
     if (deleted.availableCloud)
-      await this.s3Service.deleteFile(fileKey, deleted.gateway.s3Bucket);
+      await this.amazonService.deleteFile(fileKey, deleted.gateway.s3Bucket);
 
     if (emitLocal)
       await this.clipQueue.add('outgoing', {
@@ -750,6 +750,42 @@ export class ClipsService {
     };
   }
 
+  async combineClips(clipIDs: string[]) {
+    const clips = await this.prismaService.clip.findMany({
+      where: {
+        id: {
+          in: clipIDs,
+        },
+      },
+      include: {
+        gateway: {
+          select: {
+            s3Bucket: true,
+          },
+        },
+      },
+    });
+
+    const buckets: { [key: string]: string[] } = {};
+
+    clips.forEach((clip) => {
+      // Download from S3
+      if (clip.availableCloud) {
+        const bucket = buckets[clip.gateway.s3Bucket];
+        const key = AppHelpers.getFileKey(clip.fileName, clip.cameraID, '.mp4');
+
+        if (bucket) bucket.push(key);
+        else buckets[clip.gateway.s3Bucket] = [key];
+      }
+    });
+
+    return Promise.all(
+      Object.keys(buckets).map((key) =>
+        this.amazonService.combineClips(buckets[key], `${key}-${Date.now()}`),
+      ),
+    );
+  }
+
   async uploadClips(gatewayID: string, clips: string[]) {
     const gateway = await this.prismaService.gateway.findFirst({
       where: {
@@ -879,7 +915,7 @@ export class ClipsService {
         '.mp4',
       );
 
-      return this.s3Service.getFile(fileKey, clip.gateway.s3Bucket);
+      return this.amazonService.getFile(fileKey, clip.gateway.s3Bucket);
     }
 
     throw new HttpException(

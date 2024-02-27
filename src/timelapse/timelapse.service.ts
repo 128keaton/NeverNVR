@@ -6,7 +6,7 @@ import { VideoAnalyticsService } from '../video-analytics/video-analytics.servic
 import { HttpStatusCode } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { TimelapseCreate } from './types';
-import { S3Service } from '../services/s3/s3.service';
+import { AmazonService } from '../services/s3/amazon.service';
 import { AppHelpers } from '../app.helpers';
 import { SnapshotsService } from '../snapshots/snapshots.service';
 import { Queue } from 'bull';
@@ -19,7 +19,7 @@ export class TimelapseService {
     @InjectQueue('timelapse')
     private timelapseQueue: Queue<TimelapseEvent>,
     private snapshotsService: SnapshotsService,
-    private s3Service: S3Service,
+    private s3Service: AmazonService,
     private prismaService: PrismaService,
     private videoAnalyticsService: VideoAnalyticsService,
   ) {}

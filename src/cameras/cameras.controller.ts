@@ -1,6 +1,7 @@
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiSecurity,
@@ -16,6 +17,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Res,
   UseGuards,
@@ -32,6 +34,7 @@ import {
 import { Camera as CameraEntity } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+import { CamerasISAPIService } from './cameras-isapi.service';
 
 @Controller('cameras')
 @ApiTags('Cameras')
@@ -39,7 +42,10 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 @ApiSecurity('api-key')
 @ApiBearerAuth()
 export class CamerasController {
-  constructor(private camerasService: CamerasService) {}
+  constructor(
+    private camerasService: CamerasService,
+    private camerasISAPIService: CamerasISAPIService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a camera' })
@@ -75,6 +81,53 @@ export class CamerasController {
   @UseInterceptors(CacheInterceptor)
   getDetails(@Param('id') id: string): Promise<Camera> {
     return this.camerasService.getDetails(id);
+  }
+
+  @Get(':id/isapi/streamSettings/:channelID')
+  @ApiResponse({
+    status: 200,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Camera ID',
+  })
+  @ApiParam({
+    name: 'channelID',
+    description: 'Channel ID',
+    example: 101,
+  })
+  @ApiOperation({ summary: '(HikVision) Get camera stream settings' })
+  async getISAPIStreamSettings(
+    @Param('id') id: string,
+    @Param('channelID') channelID: number,
+  ) {
+    return this.camerasISAPIService.getCameraStreamSettings(id, channelID);
+  }
+
+  @Put(':id/isapi/streamSettings/:channelID')
+  @ApiResponse({
+    status: 200,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Camera ID',
+  })
+  @ApiParam({
+    name: 'channelID',
+    description: 'Channel ID',
+    example: 101,
+  })
+  @ApiOperation({ summary: '(HikVision) Update camera stream settings' })
+  async updateISAPIStreamSettings(
+    @Param('id') id: string,
+    @Param('channelID') channelID: number,
+    @Body() update: any,
+  ) {
+    return this.camerasISAPIService.updateCameraStreamSettings(
+      id,
+      update,
+      channelID,
+    );
   }
 
   @Get(':id/preview.jpeg')

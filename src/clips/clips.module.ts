@@ -3,7 +3,7 @@ import { ClipsService } from './clips.service';
 import { PrismaModule } from '../services/prisma/prisma.module';
 import { GatewaysModule } from '../gateways/gateways.module';
 import { BullModule } from '@nestjs/bull';
-import { S3Module } from '../services/s3/s3.module';
+import { AmazonModule } from '../services/s3/amazon.module';
 import { ClipsGateway } from './clips.gateway';
 import { ClipsQueue } from './clips.queue';
 import { ClipsController } from './clips.controller';
@@ -20,7 +20,7 @@ import { HttpModule } from '@nestjs/axios';
   providers: [ClipsService, ClipsGateway, ClipsQueue],
   exports: [ClipsService],
   imports: [
-    S3Module,
+    AmazonModule,
     PrismaModule,
     GatewaysModule,
     VideoAnalyticsModule,

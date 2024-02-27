@@ -7,17 +7,23 @@ import { CamerasController } from './cameras.controller';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
 import { GatewaysModule } from '../gateways/gateways.module';
-import { S3Module } from '../services/s3/s3.module';
+import { AmazonModule } from '../services/s3/amazon.module';
 import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import type { RedisClientOptions } from 'redis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as redisStore from 'cache-manager-redis-store';
 import { StoreConfig } from 'cache-manager';
+import { CamerasISAPIService } from './cameras-isapi.service';
 
 @Module({
   controllers: [CamerasController],
-  providers: [CamerasService, CamerasGateway, CamerasQueue],
+  providers: [
+    CamerasService,
+    CamerasISAPIService,
+    CamerasGateway,
+    CamerasQueue,
+  ],
   imports: [
     PrismaModule,
     HttpModule,
@@ -25,7 +31,7 @@ import { StoreConfig } from 'cache-manager';
       name: 'cameras',
     }),
     GatewaysModule,
-    S3Module,
+    AmazonModule,
     GatewayEventsModule,
     CacheModule.registerAsync<RedisClientOptions>({
       imports: [ConfigModule],
@@ -39,6 +45,6 @@ import { StoreConfig } from 'cache-manager';
       },
     }),
   ],
-  exports: [CamerasService, CamerasGateway],
+  exports: [CamerasService, CamerasISAPIService, CamerasGateway],
 })
 export class CamerasModule {}

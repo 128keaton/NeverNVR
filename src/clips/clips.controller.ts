@@ -25,6 +25,7 @@ import {
   ClipsResponse,
   ClipsUploadRequest,
   ClipUrlResponse,
+  CombineClipCreate,
   ConcatClipCreate,
 } from './type';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
@@ -280,6 +281,17 @@ export class ClipsController {
   })
   createConcatClip(@Body() request: ConcatClipCreate) {
     return this.clipsService.createGeneratedClip(request);
+  }
+
+  @Post('combine')
+  @ApiOperation({
+    summary: 'Create a clip which is a created from clips given',
+  })
+  @ApiBody({
+    type: CombineClipCreate,
+  })
+  createCombinedClip(@Body() request: CombineClipCreate) {
+    return this.clipsService.combineClips(request.clipIDs);
   }
 
   @Get(':clipID/video.mp4')

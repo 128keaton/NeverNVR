@@ -12,7 +12,7 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, ReplaySubject } from 'rxjs';
 import { Prisma } from '@prisma/client';
-import { S3Service } from '../services/s3/s3.service';
+import { AmazonService } from '../services/s3/amazon.service';
 import { AxiosRequestConfig, HttpStatusCode, ResponseType } from 'axios';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../app.helpers';
@@ -27,7 +27,7 @@ export class CamerasService {
   }
 
   constructor(
-    private s3Service: S3Service,
+    private s3Service: AmazonService,
     private httpService: HttpService,
     private prismaService: PrismaService,
     @InjectQueue('cameras') private camerasQueue: Queue<CameraEvent>,

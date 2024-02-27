@@ -6,7 +6,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { createPaginator } from 'prisma-pagination';
 import { Prisma, Snapshot } from '@prisma/client';
-import { S3Service } from '../services/s3/s3.service';
+import { AmazonService } from '../services/s3/amazon.service';
 import { AppHelpers } from '../app.helpers';
 import { lastValueFrom, ReplaySubject } from 'rxjs';
 import { VideoAnalyticsService } from '../video-analytics/video-analytics.service';
@@ -24,7 +24,7 @@ export class SnapshotsService {
 
   constructor(
     private prismaService: PrismaService,
-    private s3Service: S3Service,
+    private s3Service: AmazonService,
     private videoAnalyticsService: VideoAnalyticsService,
     @InjectQueue('snapshots') private snapshotsQueue: Queue<SnapshotEvent>,
   ) {}

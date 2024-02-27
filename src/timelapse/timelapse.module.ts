@@ -5,7 +5,7 @@ import { PrismaModule } from '../services/prisma/prisma.module';
 import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
 import { BullModule } from '@nestjs/bull';
 import { TimelapseQueue } from './timelapse.queue';
-import { S3Module } from '../services/s3/s3.module';
+import { AmazonModule } from '../services/s3/amazon.module';
 import { SnapshotsModule } from '../snapshots/snapshots.module';
 import { TimelapseGateway } from './timelapse.gateway';
 
@@ -15,7 +15,7 @@ import { TimelapseGateway } from './timelapse.gateway';
   imports: [
     PrismaModule,
     SnapshotsModule,
-    S3Module,
+    AmazonModule,
     VideoAnalyticsModule,
     BullModule.registerQueue({
       name: 'timelapse',

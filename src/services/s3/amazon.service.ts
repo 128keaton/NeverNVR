@@ -5,16 +5,24 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import {
+  ContainerType,
+  CreateJobCommand,
+  MediaConvertClient,
+  OutputGroupType,
+  TimecodeSource,
+} from '@aws-sdk/client-mediaconvert';
 import { Injectable, Logger, StreamableFile } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
-export class S3Service {
-  private logger: Logger = new Logger(S3Service.name);
+export class AmazonService {
+  private logger: Logger = new Logger(AmazonService.name);
 
-  private readonly client: S3Client;
+  private readonly s3Client: S3Client;
+  private readonly mediaConvertClient: MediaConvertClient;
   private readonly region: string;
   private readonly accessKeyID: string;
   private readonly secretAccessKey: string;
@@ -26,13 +34,15 @@ export class S3Service {
     );
     this.region = this.configService.get('AWS_REGION') || 'us-east-2';
 
-    this.client = new S3Client({
+    this.s3Client = new S3Client({
       region: this.region,
       credentials: {
         accessKeyId: this.accessKeyID,
         secretAccessKey: this.secretAccessKey,
       },
     });
+
+    this.mediaConvertClient = new MediaConvertClient({ region: this.region });
   }
 
   /**
@@ -60,7 +70,7 @@ export class S3Service {
     this.logger.verbose(`Uploading ${filePath} to S3 bucket ${bucket}`);
 
     try {
-      return await this.client.send(command).then((result) => {
+      return await this.s3Client.send(command).then((result) => {
         if (!!result && !!result.$metadata && !!result.$metadata.httpStatusCode)
           return result.$metadata.httpStatusCode === 200;
 
@@ -87,7 +97,7 @@ export class S3Service {
     this.logger.verbose(`Deleting ${fileName} from S3 bucket ${bucket}`);
 
     try {
-      return await this.client.send(command).then((result) => {
+      return await this.s3Client.send(command).then((result) => {
         if (!!result && !!result.$metadata && !!result.$metadata.httpStatusCode)
           return result.$metadata.httpStatusCode === 204;
 
@@ -114,7 +124,7 @@ export class S3Service {
     this.logger.verbose(`Downloading ${fileName} from S3 bucket ${bucket}`);
 
     try {
-      const response = await this.client.send(command);
+      const response = await this.s3Client.send(command);
       const byteArray = await response.Body.transformToByteArray();
 
       return new StreamableFile(byteArray);
@@ -139,7 +149,7 @@ export class S3Service {
       Key: key,
     });
 
-    const url = await getSignedUrl(this.client, command, { expiresIn });
+    const url = await getSignedUrl(this.s3Client, command, { expiresIn });
 
     this.logger.verbose(
       `Generating signed URL for ${fileName} from S3 bucket ${bucket}`,
@@ -148,6 +158,63 @@ export class S3Service {
     return {
       url,
     };
+  }
+
+  async combineClips(clips: string[], output: string) {
+    try {
+      const data = await this.mediaConvertClient.send(
+        new CreateJobCommand({
+          Settings: {
+            Inputs: clips.map((file) => {
+              return {
+                TimecodeSource: TimecodeSource.ZEROBASED,
+                VideoSelector: {},
+                AudioSelectors: {},
+                FileInput: `s3://${file}`,
+              };
+            }),
+            OutputGroups: [
+              {
+                Name: 'File Group',
+                OutputGroupSettings: {
+                  Type: OutputGroupType.FILE_GROUP_SETTINGS,
+                  FileGroupSettings: {
+                    Destination: `s3://${output}`,
+                  },
+                },
+                Outputs: [
+                  {
+                    VideoDescription: {
+                      CodecSettings: {
+                        Codec: 'H_265',
+                        H265Settings: {
+                          RateControlMode: 'QVBR',
+                          SceneChangeDetect: 'TRANSITION_DETECTION',
+                          WriteMp4PackagingType: 'HVC1',
+                        },
+                      },
+                    },
+                    ContainerSettings: {
+                      Container: ContainerType.MP4,
+                      Mp4Settings: {},
+                    },
+                  },
+                ],
+              },
+            ],
+            TimecodeConfig: {
+              Source: TimecodeSource.ZEROBASED,
+            },
+            FollowSource: 1,
+          },
+          Role: 'arn:aws:iam::689340570029:role/MediaConvert_Default_Role',
+        }),
+      );
+      console.log('Job created!', data);
+      return data;
+    } catch (err) {
+      console.log('Error', err);
+    }
   }
 
   private async getValidFilePath(
@@ -179,7 +246,7 @@ export class S3Service {
 
   async fileExists(fileName: string, bucket: string) {
     try {
-      const response = await this.client.send(
+      const response = await this.s3Client.send(
         new HeadObjectCommand({
           Bucket: bucket,
           Key: fileName,
