@@ -2,8 +2,8 @@ import { WebSocketGateway } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { GatewaysService } from '../gateways/gateways.service';
 import { CommonGateway } from '../common/common-gateway';
-import { ClipsService } from './clips.service';
-import { ClipEvent } from './type';
+import { ClipsService } from './services';
+import { ClipEvent, ClipJobEvent } from './type';
 import { Payload, Subscribe } from '@vipstorage/nest-mqtt';
 
 @WebSocketGateway({
@@ -18,7 +18,6 @@ export class ClipsGateway extends CommonGateway {
     private clipsService: ClipsService,
   ) {
     super(gatewaysService);
-    this.logger.verbose('Clips gateway active');
 
     this.clipsService.clipEvents.subscribe((event) => {
       this.handleClipEvent(event);
@@ -39,6 +38,19 @@ export class ClipsGateway extends CommonGateway {
     });
   }
 
+  handleClipJobEvent(event: ClipJobEvent) {
+    // Get all UI clients (i.e. non gateway clients)
+    const webClients = this.getWebClients();
+
+    // Send the UI clients the same update
+    webClients.forEach((client) => {
+      client.emit(event.eventType, {
+        id: event.job.id,
+        job: event.job,
+      });
+    });
+  }
+
   @Subscribe('never_gateway/clip/+/created')
   handleCreated(
     @Payload()
@@ -51,7 +63,6 @@ export class ClipsGateway extends CommonGateway {
   ) {
     if (!payload.gatewayID) return;
 
-    this.logger.verbose(`Creating new clip from ${payload.gatewayID}`);
     return this.clipsService
       .create(
         {

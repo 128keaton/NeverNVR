@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Timeline, TimelineItem } from './types';
-import { ClipsService } from '../clips/clips.service';
+import { ClipsService } from '../clips/services/clips.service';
 import { SnapshotsService } from '../snapshots/snapshots.service';
 
 @Injectable()

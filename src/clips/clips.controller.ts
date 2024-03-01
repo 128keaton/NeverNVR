@@ -11,7 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ClipsService } from './clips.service';
+import { ClipJobsService, ClipsService } from './services';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -30,6 +30,7 @@ import {
 } from './type';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AuthGuard } from '@nestjs/passport';
+import { JobState, JobType } from '@prisma/client';
 
 @Controller('clips')
 @ApiTags('Clips')
@@ -37,7 +38,10 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiSecurity('api-key')
 @ApiBearerAuth()
 export class ClipsController {
-  constructor(private clipsService: ClipsService) {}
+  constructor(
+    private clipsService: ClipsService,
+    private clipJobsService: ClipJobsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List all clips' })
@@ -272,26 +276,23 @@ export class ClipsController {
     );
   }
 
-  @Post('concat')
+  @Post('jobs/concat')
   @ApiOperation({
     summary: 'Create a clip which is a created from clips given',
   })
   @ApiBody({
     type: ConcatClipCreate,
   })
-  createConcatClip(@Body() request: ConcatClipCreate) {
-    return this.clipsService.createGeneratedClip(request);
+  createConcatClipJob(@Body() request: ConcatClipCreate) {
+    return this.clipJobsService.joinClips(request.clipIDs, request.cameraID);
   }
 
-  @Post('combine')
+  @Get('jobs')
   @ApiOperation({
-    summary: 'Create a clip which is a created from clips given',
+    summary: 'Get clip jobs',
   })
-  @ApiBody({
-    type: CombineClipCreate,
-  })
-  createCombinedClip(@Body() request: CombineClipCreate) {
-    return this.clipsService.combineClips(request.clipIDs);
+  getClipJobs(@Query('type') type?: JobType, @Query('state') state?: JobState) {
+    return this.clipJobsService.getClipJobs({ type, state });
   }
 
   @Get(':clipID/video.mp4')

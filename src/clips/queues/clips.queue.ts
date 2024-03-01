@@ -1,9 +1,9 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
-import { ClipsGateway } from './clips.gateway';
-import { ClipAnalyzed, ClipEvent } from './type';
-import { ClipsService } from './clips.service';
-import { GatewayEventsService } from '../gateway-events/gateway-events.service';
+import { ClipsGateway } from '../clips.gateway';
+import { ClipAnalyzed, ClipEvent } from '../type';
+import { ClipsService } from '../services';
+import { GatewayEventsService } from '../../gateway-events/gateway-events.service';
 
 @Processor('clips')
 export class ClipsQueue {
@@ -57,28 +57,6 @@ export class ClipsQueue {
       },
       clip.cameraID,
       clip.gatewayID,
-    );
-  }
-
-  @Process('finished-generating')
-  async finishGeneratingClip(
-    job: Job<{ outputFilename: string; jobID: string }>,
-  ) {
-    const clip = await this.clipsService.getByGenerationJobID(job.data.jobID);
-
-    if (!clip) return;
-
-    return this.clipsService.update(
-      clip.id,
-      {
-        generated: true,
-        generateEnd: new Date(),
-        fileName: job.data.outputFilename,
-        availableCloud: true,
-      },
-      clip.cameraID,
-      clip.gatewayID,
-      false,
     );
   }
 

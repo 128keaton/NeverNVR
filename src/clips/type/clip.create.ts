@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ClipType } from '@prisma/client';
 
 export class ClipCreate {
   @ApiProperty()
@@ -54,4 +55,10 @@ export class ClipCreate {
 
   @ApiProperty()
   requested?: boolean;
+
+  @ApiProperty()
+  type?: ClipType;
+
+  @ApiProperty()
+  generateJobID?: string;
 }

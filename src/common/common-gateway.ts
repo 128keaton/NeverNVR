@@ -13,7 +13,6 @@ export class CommonGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleConnection(client: Socket): any {
-    this.logger.debug(`New client: ${client.id}`);
     this.clients.push(client);
     client.emit('request', { type: 'identify' });
   }

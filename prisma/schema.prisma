@@ -20,6 +20,22 @@ enum ClipType {
   generated
 }
 
+enum JobState {
+  INITIALIZING
+  REQUESTING
+  UPLOADING
+  PROCESSING
+  ERROR
+  COMPLETE
+  STALLED
+}
+
+enum JobType {
+  CONCAT
+  ANALYZE
+  TIMELAPSE
+}
+
 enum UploadTaskType {
   clip
   snapshot
@@ -174,12 +190,13 @@ model Snapshot {
 
   analyticsJobID   String?
   analyzedFileName String?
-  analyzed         Boolean   @default(false)
-  analyzing        Boolean   @default(false)
+  analyzed         Boolean        @default(false)
+  analyzing        Boolean        @default(false)
   analyzeStart     DateTime?
   analyzeEnd       DateTime?
   primaryTag       String?
-  tags             String[]  @default([])
+  tags             String[]       @default([])
+  jobs             SnapshotJobs[]
 }
 
 model Clip {
@@ -238,13 +255,64 @@ model Clip {
   analyzeEnd       DateTime?
   primaryTag       String?
 
-  generationJobID String?
-  generated       Boolean   @default(false)
-  generateStart   DateTime?
-  generateEnd     DateTime?
+  requested   Boolean    @default(false)
+  tags        String[]   @default([])
+  jobs        ClipJobs[]
+  generateJob Job?
+}
 
-  requested Boolean  @default(false)
-  tags      String[] @default([])
+model ClipJobs {
+  id String @id @default(uuid()) @db.Uuid
+
+  job    Job    @relation(fields: [jobID], references: [id], onDelete: Cascade)
+  clip   Clip   @relation(fields: [clipID], references: [id], onDelete: Cascade)
+  jobID  String @db.Uuid
+  clipID String
+
+  @@index([clipID, jobID])
+}
+
+model SnapshotJobs {
+  id String @id @default(uuid()) @db.Uuid
+
+  job        Job      @relation(fields: [jobID], references: [id], onDelete: Cascade)
+  snapshot   Snapshot @relation(fields: [snapshotID], references: [id], onDelete: Cascade)
+  jobID      String   @db.Uuid
+  snapshotID String
+
+  @@index([snapshotID, jobID])
+}
+
+model Job {
+  // ID of the bulk job
+  id String @id @default(uuid()) @db.Uuid
+
+  // Bulk job resulting file path on S3
+  filePath String
+
+  state JobState @default(INITIALIZING)
+  type  JobType
+
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  clips     ClipJobs[]
+  snapshots SnapshotJobs[]
+
+  uploadProgress     Float   @default(0.0)
+  generationProgress Float   @default(0.0)
+  errorMessage       String?
+  itemsUploaded      Int     @default(0)
+
+  serviceID   String?
+  lastUpdated DateTime @default(now())
+  hash        String
+
+  generatedClip   Clip?   @relation(fields: [generatedClipID], references: [id])
+  generatedClipID String? @unique
+
+  @@index([id, hash, serviceID])
+  @@index([id, hash])
 }
 
 model Timelapse {

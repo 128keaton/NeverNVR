@@ -42,14 +42,11 @@ export class VideoAnalyticsService {
       transports: ['websocket'],
       path: '/socket',
       reconnection: true,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 10000,
     });
 
     this.videoAnalyticsSocket.on('connect_error', (err) => {
       this.logger.error(err);
-      setTimeout(() => {
-        this.videoAnalyticsSocket.connect();
-      }, 1000);
     });
 
     this.videoAnalyticsSocket.on('connect', () => {

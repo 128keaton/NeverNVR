@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ClipsService } from './clips.service';
+import { ClipsService } from './services/clips.service';
 import { PrismaModule } from '../services/prisma/prisma.module';
 import { GatewaysModule } from '../gateways/gateways.module';
 import { BullModule } from '@nestjs/bull';
 import { AmazonModule } from '../services/s3/amazon.module';
 import { ClipsGateway } from './clips.gateway';
-import { ClipsQueue } from './clips.queue';
+import { ClipsQueue } from './queues/clips.queue';
 import { ClipsController } from './clips.controller';
 import { VideoAnalyticsModule } from '../video-analytics/video-analytics.module';
 import { GatewayEventsModule } from '../gateway-events/gateway-events.module';
@@ -15,9 +15,17 @@ import * as redisStore from 'cache-manager-redis-store';
 import type { RedisClientOptions } from 'redis';
 import { StoreConfig } from 'cache-manager';
 import { HttpModule } from '@nestjs/axios';
+import { ClipJobsService } from './services/clip-jobs.service';
+import { ClipJobsQueue } from './queues/clip-jobs.queue';
 
 @Module({
-  providers: [ClipsService, ClipsGateway, ClipsQueue],
+  providers: [
+    ClipsGateway,
+    ClipsService,
+    ClipJobsService,
+    ClipsQueue,
+    ClipJobsQueue,
+  ],
   exports: [ClipsService],
   imports: [
     AmazonModule,
@@ -26,6 +34,9 @@ import { HttpModule } from '@nestjs/axios';
     VideoAnalyticsModule,
     BullModule.registerQueue({
       name: 'clips',
+    }),
+    BullModule.registerQueue({
+      name: 'clipJobs',
     }),
     HttpModule,
     CacheModule.registerAsync<RedisClientOptions>({

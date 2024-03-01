@@ -1,6 +1,7 @@
 // created from 'create-ts-index'
 
 export * from './clip-analyzed.type';
+export * from './clip-job.event';
 export * from './clip-url.response';
 export * from './clip.create';
 export * from './clip.event';

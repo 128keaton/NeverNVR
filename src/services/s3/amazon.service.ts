@@ -8,6 +8,7 @@ import {
 import {
   ContainerType,
   CreateJobCommand,
+  GetJobCommand,
   MediaConvertClient,
   OutputGroupType,
   TimecodeSource,
@@ -160,10 +161,18 @@ export class AmazonService {
     };
   }
 
-  async combineClips(clips: string[], output: string) {
+  async combineClips(
+    clips: string[],
+    output: string,
+    metadata?: { [key: string]: string },
+    acceleration: boolean = false,
+  ) {
     try {
       const data = await this.mediaConvertClient.send(
         new CreateJobCommand({
+          AccelerationSettings: {
+            Mode: acceleration ? 'PREFERRED' : 'DISABLED',
+          },
           Settings: {
             Inputs: clips.map((file) => {
               return {
@@ -179,7 +188,7 @@ export class AmazonService {
                 OutputGroupSettings: {
                   Type: OutputGroupType.FILE_GROUP_SETTINGS,
                   FileGroupSettings: {
-                    Destination: `s3://${output}`,
+                    Destination: `s3://${output.replace('.mp4', '')}`,
                   },
                 },
                 Outputs: [
@@ -188,15 +197,22 @@ export class AmazonService {
                       CodecSettings: {
                         Codec: 'H_265',
                         H265Settings: {
+                          CodecProfile: 'MAIN_MAIN',
+                          MaxBitrate: 5000000,
                           RateControlMode: 'QVBR',
-                          SceneChangeDetect: 'TRANSITION_DETECTION',
                           WriteMp4PackagingType: 'HVC1',
+                          QualityTuningLevel: 'SINGLE_PASS_HQ',
+                          QvbrSettings: {
+                            QvbrQualityLevel: 8,
+                          },
                         },
                       },
                     },
                     ContainerSettings: {
                       Container: ContainerType.MP4,
-                      Mp4Settings: {},
+                      Mp4Settings: {
+                        MoovPlacement: 'PROGRESSIVE_DOWNLOAD',
+                      },
                     },
                   },
                 ],
@@ -207,14 +223,38 @@ export class AmazonService {
             },
             FollowSource: 1,
           },
+          UserMetadata: metadata,
           Role: 'arn:aws:iam::689340570029:role/MediaConvert_Default_Role',
         }),
       );
-      console.log('Job created!', data);
+      this.logger.log('Job created!', data);
       return data;
     } catch (err) {
-      console.log('Error', err);
+      this.logger.error('Error', err);
     }
+  }
+
+  async getMediaStatus(id: string) {
+    const input = {
+      // GetJobRequest
+      Id: id, // required
+    };
+    const command = new GetJobCommand(input);
+
+    return this.mediaConvertClient.send(command);
+  }
+
+  async getFileDetails(validFilePath: string) {
+    const splitPath = validFilePath.split('/');
+    const bucket = splitPath[0];
+    const key = splitPath.slice(1).join('/');
+
+    const command = new HeadObjectCommand({
+      Key: key.includes('.mp4') ? key : `${key}.mp4`,
+      Bucket: bucket,
+    });
+
+    return this.s3Client.send(command);
   }
 
   private async getValidFilePath(
