@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { AmazonService } from '../../services/s3/amazon.service';
 import { Clip, ClipCreate, ClipEvent, ClipUpdate } from '../type';
-import { Prisma } from '@prisma/client';
+import { ClipType, Prisma } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { AppHelpers } from '../../app.helpers';
 import { AxiosRequestConfig, HttpStatusCode } from 'axios';
@@ -307,6 +307,11 @@ export class ClipsService {
           camera: {
             select: {
               name: true,
+            },
+          },
+          generateJob: {
+            select: {
+              filePath: true,
             },
           },
         },
@@ -974,26 +979,23 @@ export class ClipsService {
       camera: { id?: string };
       cameraID?: string;
       analyzedFileName?: string;
+      type?: ClipType;
+      generateJob?: { filePath: string };
     },
     analyzed: boolean = false,
   ) {
+    if (clip.type === ClipType.generated && clip.generateJob) {
+      return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${clip.generateJob.filePath}`;
+    }
+
     const fileName =
       clip.analyzedFileName && analyzed ? clip.analyzedFileName : clip.fileName;
 
-    let fileKey: string;
-
-    if (fileName.includes('alarm')) {
-      fileKey = AppHelpers.getGeneratedAlarmBucketDirectory(
-        fileName,
-        clip.camera.id || clip.cameraID,
-      );
-    } else {
-      fileKey = AppHelpers.getFileKey(
-        fileName,
-        clip.camera.id || clip.cameraID,
-        '.mp4',
-      );
-    }
+    const fileKey = AppHelpers.getFileKey(
+      fileName,
+      clip.camera.id || clip.cameraID,
+      '.mp4',
+    );
 
     return `https://${clip.gateway.s3Bucket}.copcart-cdn.com/${fileKey}`;
   }

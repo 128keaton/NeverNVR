@@ -195,10 +195,6 @@ export class ClipJobsQueue {
           } to upload: ${requestedIDs.join(',')}`,
         );
 
-        await Promise.all(
-          requestedIDs.map((id) => this.clipsService.checkAndUpdateCloud(id)),
-        );
-
         const total = clips.length;
         const uploaded = total - clipsToRequest.length;
         const uploadProgress = (uploaded / total) * 100;

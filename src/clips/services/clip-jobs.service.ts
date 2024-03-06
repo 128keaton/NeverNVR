@@ -244,7 +244,7 @@ export class ClipJobsService {
       })
       .map((job) => job.id);
 
-    for (const id in jobIDs) await this.updateJobState(id, 'STALLED');
+    for (const id of jobIDs) await this.updateJobState(id, 'STALLED');
   }
 
   async requestClips(jobID: string, clips: Clip[]) {
@@ -270,19 +270,27 @@ export class ClipJobsService {
     const finishedAt: Date | undefined =
       state === 'COMPLETE' ? new Date() : undefined;
 
-    const job = await this.prismaService.job.update({
-      where: {
-        id,
-        state: {
-          not: state,
+    this.logger.verbose(`Updating job state for job with ID: ${id}`);
+
+    const job = await this.prismaService.job
+      .update({
+        where: {
+          id,
+          state: {
+            not: state,
+          },
         },
-      },
-      data: {
-        state,
-        finishedAt,
-        lastUpdated: new Date(),
-      },
-    });
+        data: {
+          state,
+          finishedAt,
+          lastUpdated: new Date(),
+        },
+      })
+      .catch((err) => {
+        this.logger.error(`Could not update job state with ID ${id}:`);
+        this.logger.error(err);
+        return null;
+      });
 
     if (!job) return;
 
